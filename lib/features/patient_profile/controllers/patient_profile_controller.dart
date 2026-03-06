@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import '../pages/upload_medication_list_page.dart';
+import '../pages/take_photo_page.dart';
 
 class PatientProfileController extends GetxController {
   final RxString patientName = 'Margaret Thompson'.obs;
@@ -18,10 +20,10 @@ class PatientProfileController extends GetxController {
   }
 
   void uploadFile() {
-    // Handle file upload
+    Get.to(() => const UploadMedicationListPage());
   }
 
   void takePhoto() {
-    // Handle camera
+    Get.to(() => const TakePhotoPage());
   }
 }

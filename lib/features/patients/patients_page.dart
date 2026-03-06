@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'patients_controller.dart';
 import 'add_patient_page.dart';
-import '../patient_profile/patient_profile_page.dart';
+import '../patient_profile/pages/patient_profile_page.dart';
 
 class PatientsPage extends StatelessWidget {
   const PatientsPage({super.key});

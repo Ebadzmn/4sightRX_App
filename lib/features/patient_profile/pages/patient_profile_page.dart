@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'patient_profile_controller.dart';
+import '../controllers/patient_profile_controller.dart';
 
 class PatientProfilePage extends StatelessWidget {
   const PatientProfilePage({super.key});

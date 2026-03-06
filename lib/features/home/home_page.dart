@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../patient_profile/patient_profile_page.dart';
+import '../patient_profile/pages/patient_profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
