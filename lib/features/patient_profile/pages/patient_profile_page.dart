@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/patient_profile_controller.dart';
+import 'add_medication_page.dart';
 
 class PatientProfilePage extends StatelessWidget {
   const PatientProfilePage({super.key});
@@ -201,9 +202,10 @@ class PatientProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Enter Manually Button
                   OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Get.to(() => const AddMedicationPage());
+                    },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.all(20),
                       minimumSize: const Size(double.infinity, 60),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/review_medication_controller.dart';
 import 'formulary_comparison_page.dart';
+import 'add_medication_page.dart';
 
 class ReviewMedicationPage extends StatelessWidget {
   const ReviewMedicationPage({super.key});
@@ -57,7 +58,7 @@ class ReviewMedicationPage extends StatelessWidget {
             // Add Missing Medication Button
             OutlinedButton(
               onPressed: () {
-                // Action for adding missing medication
+                Get.to(() => const AddMedicationPage());
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
