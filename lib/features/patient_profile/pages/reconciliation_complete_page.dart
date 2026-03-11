@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/reconciliation_complete_controller.dart';
+import 'export_medication_list_page.dart';
 
 class ReconciliationCompletePage extends StatelessWidget {
   const ReconciliationCompletePage({super.key});
@@ -135,7 +136,9 @@ class ReconciliationCompletePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Get.to(() => const ExportMedicationListPage());
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0C4A6E),
                       foregroundColor: Colors.white,
