@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import '../../home/home_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../edit_profile_page.dart';
+import 'change_password_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ProfileController());
+    final controller = Get.isRegistered<ProfileController>()
+        ? Get.find<ProfileController>()
+        : Get.put(ProfileController(), permanent: true);
+    final homeController = Get.find<HomeController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -30,37 +36,64 @@ class ProfilePage extends StatelessWidget {
           child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildProfileCard(),
-              const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.only(left: 4.0, bottom: 12.0),
-                child: Text(
-                  'Account',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1E293B),
+      body: RefreshIndicator(
+        onRefresh: homeController.refreshProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 24.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Obx(() => _buildProfileCard(homeController)),
+                const SizedBox(height: 24),
+                const Padding(
+                  padding: EdgeInsets.only(left: 4.0, bottom: 12.0),
+                  child: Text(
+                    'Account',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
                 ),
-              ),
-              _buildAccountCard(controller),
-              const SizedBox(height: 24),
-              _buildSignOutCard(),
-              const SizedBox(height: 32),
-            ],
+                _buildAccountCard(controller),
+                const SizedBox(height: 24),
+                _buildSignOutCard(controller),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(HomeController homeController) {
+    final profile = homeController.userProfile.value;
+
+    if (homeController.isProfileLoading.value && profile == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 48),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -71,29 +104,58 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          const CircleAvatar(
+          CircleAvatar(
             radius: 40,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=47'),
-            backgroundColor: Color(0xFFE2E8F0),
+            backgroundColor: const Color(0xFFE2E8F0),
+            backgroundImage:
+                profile != null && profile.resolvedImagePath.isNotEmpty
+                ? NetworkImage(profile.resolvedImagePath)
+                : null,
+            child: profile != null && profile.resolvedImagePath.isEmpty
+                ? Text(
+                    _buildInitials(profile.name),
+                    style: const TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Dr. Sarah Johnson',
-            style: TextStyle(
+          Text(
+            profile?.name.isNotEmpty == true ? profile!.name : 'Profile User',
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.normal,
               color: Color(0xFF1E293B),
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'PharmD, Clinical Pharmacist',
-            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          Text(
+            profile?.role.isNotEmpty == true ? profile!.role : 'Profile',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            "St. Mary's General Hospital",
-            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          Text(
+            profile?.email.isNotEmpty == true
+                ? profile!.email
+                : 'No email found',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            profile?.specialty.isNotEmpty == true
+                ? profile!.specialty
+                : 'No specialty set',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            profile?.hospitalName.isNotEmpty == true
+                ? profile!.hospitalName
+                : 'No hospital name set',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 20),
           const Padding(
@@ -105,14 +167,20 @@ class ProfilePage extends StatelessWidget {
             children: [
               Expanded(
                 child: Column(
-                  children: const [
+                  children: [
                     Text(
-                      '247',
-                      style: TextStyle(fontSize: 26, color: Color(0xFF0F62FE)),
+                      profile?.status.isNotEmpty == true
+                          ? profile!.status
+                          : 'Active',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Color(0xFF0F62FE),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Reconciliations',
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Status',
                       style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -120,14 +188,18 @@ class ProfilePage extends StatelessWidget {
               ),
               Expanded(
                 child: Column(
-                  children: const [
+                  children: [
                     Text(
-                      '\$24.8K',
-                      style: TextStyle(fontSize: 26, color: Color(0xFF10B981)),
+                      profile?.verified == true ? 'Verified' : 'Unverified',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Color(0xFF10B981),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Total Savings',
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Account',
                       style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -139,6 +211,24 @@ class ProfilePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _buildInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) {
+      return 'U';
+    }
+
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+
+    return '${parts.first.substring(0, 1)}${parts[1].substring(0, 1)}'
+        .toUpperCase();
   }
 
   Widget _buildAccountCard(ProfileController controller) {
@@ -153,7 +243,7 @@ class ProfilePage extends StatelessWidget {
           _buildActionItem(
             icon: Icons.edit_outlined,
             title: 'Edit Profile',
-            onTap: () => _showEditProfileDialog(),
+            onTap: () => Get.to(() => const EditProfilePage()),
           ),
           Obx(
             () => _buildActionItem(
@@ -172,7 +262,9 @@ class ProfilePage extends StatelessWidget {
           _buildActionItem(
             icon: Icons.lock_outline,
             title: 'Change Password',
-            onTap: () {},
+            onTap: () {
+              Get.to(() => const ChangePasswordPage());
+            },
             isLast: true,
           ),
         ],
@@ -214,9 +306,9 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSignOutCard() {
+  Widget _buildSignOutCard(ProfileController controller) {
     return GestureDetector(
-      onTap: () => _showSignOutBottomSheet(),
+      onTap: () => _showSignOutBottomSheet(controller),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
@@ -243,126 +335,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  void _showEditProfileDialog() {
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: const EdgeInsets.all(24),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Edit Profile',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1F5F9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Color(0xFF1E293B),
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildTextField('FIRST NAME', 'Sarah')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildTextField('LAST NAME', 'Johnson')),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildTextField('SPECIALTY', 'PharmD, Clinical Pharmacist'),
-              const SizedBox(height: 16),
-              _buildTextField('HOSPITAL', "St. Mary's General Hospital"),
-              const SizedBox(height: 16),
-              _buildTextField('EMAIL', 'sarah@example.com'),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0C4A6E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Save Changes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF94A3B8),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          initialValue: value,
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B)),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: const Color(0xFFF6F8FA),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showSignOutBottomSheet() {
+  void _showSignOutBottomSheet(ProfileController controller) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
@@ -543,9 +516,8 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Sign out logic
-                      Get.back();
+                    onPressed: () async {
+                      await controller.logout();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0C4A6E),

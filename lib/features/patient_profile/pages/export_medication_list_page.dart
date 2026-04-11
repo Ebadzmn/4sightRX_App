@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/export_medication_list_controller.dart';
+import '../../main/main_page.dart';
+import '../../main/main_controller.dart';
 
 class ExportMedicationListPage extends StatelessWidget {
   const ExportMedicationListPage({super.key});
@@ -33,7 +35,14 @@ class ExportMedicationListPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white,
         currentIndex: 1, // Patients tab
+        onTap: (index) {
+          if (index == 1) return;
+          final mainController = Get.put(MainController());
+          mainController.changeTabIndex(index);
+          Get.offAll(() => const MainPage());
+        },
         selectedItemColor: const Color(0xFF0F62FE),
         unselectedItemColor: const Color(0xFF94A3B8),
         showUnselectedLabels: true,

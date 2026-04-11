@@ -1,4 +1,9 @@
 class AppRoutes {
   static const String initial = '/';
-  // TODO: Add route names
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String otp = '/otp';
+  static const String changePassword = '/change-password';
+  static const String home = '/home';
 }

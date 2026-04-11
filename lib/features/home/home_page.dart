@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import 'home_controller.dart';
 import '../patient_profile/pages/patient_profile_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -7,6 +9,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final homeController = Get.find<HomeController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
       appBar: AppBar(
@@ -22,200 +26,232 @@ class HomePage extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              // Welcome Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
-                    begin: Alignment(-1.0, -0.5),
-                    end: Alignment(1.0, 0.40),
-                    stops: [0.0115, 0.4009],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Welcome back, Dr. Johnson',
-                      style: TextStyle(
+      body: RefreshIndicator(
+        onRefresh: homeController.refreshProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Obx(() {
+                  final profile = homeController.userProfile.value;
+
+                  if (homeController.isProfileLoading.value) {
+                    return Container(
+                      width: double.infinity,
+                      height: 160,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
+                          begin: Alignment(-1.0, -0.5),
+                          end: Alignment(1.0, 0.40),
+                          stops: [0.0115, 0.4009],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const CircularProgressIndicator(
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "St. Mary's General Hospital • Feb 8, 2026",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Colors.white30),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                    );
+                  }
+
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
+                        begin: Alignment(-1.0, -0.5),
+                        end: Alignment(1.0, 0.40),
+                        stops: [0.0115, 0.4009],
                       ),
-                      child: const Text('Start New Reconciliation →'),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Stats Row
-              Row(
-                children: [
-                  _buildStatCard(
-                    '24',
-                    'Active Patients',
-                    Icons.people_outline,
-                    const Color(0xFF3B82F6),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatCard(
-                    '16',
-                    'Completed',
-                    Icons.check_circle_outline,
-                    const Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatCard(
-                    '\$8.4K',
-                    'Monthly Savings',
-                    Icons.trending_up,
-                    const Color(0xFF10B981),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Search Bar
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back, ${profile?.name.isNotEmpty == true ? profile!.name : 'Dr. Johnson'}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          profile?.email.isNotEmpty == true
+                              ? '${profile!.role} • ${profile.email}'
+                              : "St. Mary's General Hospital • Feb 8, 2026",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white30),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text('Start New Reconciliation →'),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search patients...',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: Color(0xFF94A3B8),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Recent Activity Header
-              Row(
-                children: const [
-                  Icon(Icons.access_time, color: Color(0xFF64748B), size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Recent Activity',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF334155),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Activity List
-              _buildActivityItem(
-                'Margaret Thompson',
-                'Reconciliation completed',
-                '2 hours ago',
-                'Done',
-                const Color(0xFF10B981),
-              ),
-              _buildActivityItem(
-                'Robert Chen',
-                'Awaiting formulary review',
-                '4 hours ago',
-                'Pending',
-                const Color(0xFFF59E0B),
-              ),
-              _buildActivityItem(
-                'Sarah Williams',
-                'Uploaded med list',
-                '5 hours ago',
-                'In Progress',
-                const Color(0xFF3B82F6),
-              ),
-              const SizedBox(height: 24),
-              // Quick Actions Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  );
+                }),
+                const SizedBox(height: 24),
+                // Stats Row
+                Row(
                   children: [
-                    const Text(
-                      'Quick Actions',
+                    _buildStatCard(
+                      '24',
+                      'Active Patients',
+                      Icons.people_outline,
+                      const Color(0xFF3B82F6),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildStatCard(
+                      '16',
+                      'Completed',
+                      Icons.check_circle_outline,
+                      const Color(0xFF10B981),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildStatCard(
+                      '\$8.4K',
+                      'Monthly Savings',
+                      Icons.trending_up,
+                      const Color(0xFF10B981),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Search Bar
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search patients...',
+                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Recent Activity Header
+                Row(
+                  children: const [
+                    Icon(Icons.access_time, color: Color(0xFF64748B), size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Recent Activity',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                        color: Color(0xFF334155),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildActionItem(
-                      'Start New Reconciliation',
-                      const Color(0xFFF0F7FF),
-                      const Color(0xFF2196F3),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionItem(
-                      'View All Patients',
-                      const Color(0xFFF8F9FB),
-                      const Color(0xFF475569),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 40),
-            ],
+                const SizedBox(height: 16),
+                // Activity List
+                _buildActivityItem(
+                  'Margaret Thompson',
+                  'Reconciliation completed',
+                  '2 hours ago',
+                  'Done',
+                  const Color(0xFF10B981),
+                ),
+                _buildActivityItem(
+                  'Robert Chen',
+                  'Awaiting formulary review',
+                  '4 hours ago',
+                  'Pending',
+                  const Color(0xFFF59E0B),
+                ),
+                _buildActivityItem(
+                  'Sarah Williams',
+                  'Uploaded med list',
+                  '5 hours ago',
+                  'In Progress',
+                  const Color(0xFF3B82F6),
+                ),
+                const SizedBox(height: 24),
+                // Quick Actions Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Quick Actions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildActionItem(
+                        'Start New Reconciliation',
+                        const Color(0xFFF0F7FF),
+                        const Color(0xFF2196F3),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionItem(
+                        'View All Patients',
+                        const Color(0xFFF8F9FB),
+                        const Color(0xFF475569),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),

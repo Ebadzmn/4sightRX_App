@@ -533,7 +533,8 @@ class FormularyComparisonPage extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: () {},
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFEF4444), // Red
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white, // Red
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           side: const BorderSide(color: Color(0xFFEF4444)),
                           shape: RoundedRectangleBorder(
