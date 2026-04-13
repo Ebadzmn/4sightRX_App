@@ -5,7 +5,16 @@ import '../profile/pages/profile_page.dart';
 import 'package:flutter/material.dart';
 
 class MainController extends GetxController {
+  MainController({int initialIndex = 0}) : _initialIndex = initialIndex;
+
+  final int _initialIndex;
   final RxInt selectedIndex = 0.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    selectedIndex.value = _initialIndex;
+  }
 
   final List<Widget> pages = [
     const HomePage(),

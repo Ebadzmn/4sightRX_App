@@ -6,6 +6,7 @@ class ApiEndpoints {
   static const String signUp = '/user';
   static const String profile = '/user/profile';
   static const String updateProfile = '/user/profile';
+  static const String patients = '/patients';
   static const String forgetPassword = '/auth/forget-password';
   static const String verifyEmail = '/auth/verify-email';
   static const String resetPassword = '/auth/reset-password';

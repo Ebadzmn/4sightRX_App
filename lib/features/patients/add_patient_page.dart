@@ -32,7 +32,6 @@ class AddPatientPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Personal Information Card
             _buildFormCard(
               title: 'Personal Information',
               children: [
@@ -60,78 +59,74 @@ class AddPatientPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildTextField(
                   label: 'PATIENT ID / MRN',
-                  controller: controller.patientIdController,
+                  controller: controller.patientIdMrnController,
                   hint: 'MRN-45678',
                   isRequired: true,
+                  textCapitalization: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(
+                      child: _buildDateField(
                         label: 'Date of Birth',
-                        controller: controller.dobController,
-                        hint: '12/31/1948',
+                        hint: 'DD-MM-YYYY',
+                        value: controller.selectedDateOfBirth,
+                        onTap: controller.pickDateOfBirth,
                         isRequired: true,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildTextField(
-                        label: 'Age',
-                        controller: controller.ageController,
-                        hint: '78',
+                      child: _buildDropdownField(
+                        label: 'GENDER',
+                        value: controller.selectedGender,
+                        items: controller.genders,
+                        isRequired: true,
+                        hint: 'Select Gender',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildDropdownField(
-                  label: 'GENDER',
-                  value: controller.selectedGender,
-                  items: controller.genders,
-                  isRequired: true,
-                ),
-                const SizedBox(height: 16),
                 _buildTextField(
                   label: 'PHONE NUMBER',
-                  controller: controller.phoneController,
+                  controller: controller.phoneNumberController,
                   hint: '017444114084',
                   prefixIcon: Icons.phone_outlined,
                   isRequired: true,
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   label: 'MEDICATION ALLERGIES',
-                  controller: controller.allergiesController,
+                  controller: controller.medicationAllergiesController,
                   hint: '',
-                  isRequired: true,
+                  maxLines: 2,
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            // Admission Information Card
             _buildFormCard(
               title: 'Admission Information',
               children: [
-                _buildDropdownField(
-                  label: 'FACILITY',
-                  value: controller.selectedFacility,
-                  items: controller.facilities,
+                _buildDateField(
+                  label: 'ADMISSION DATE',
+                  hint: 'DD-MM-YYYY',
+                  value: controller.selectedAdmissionDate,
+                  onTap: controller.pickAdmissionDate,
                   isRequired: true,
-                  hint: 'Select Facility',
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
-                  label: 'ADMISSION DATE',
-                  controller: controller.admissionDateController,
-                  hint: '01/28/2026',
-                  isRequired: true,
+                  label: 'NOTES',
+                  controller: controller.notesController,
+                  hint: 'Add optional notes',
+                  maxLines: 4,
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            // Information Box
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -145,7 +140,6 @@ class AddPatientPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            // Actions
             Row(
               children: [
                 Expanded(
@@ -166,22 +160,40 @@ class AddPatientPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: controller.addPatient,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFF0C3064),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  child: Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.addPatient,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF0C3064),
+                        disabledBackgroundColor: const Color(
+                          0xFF0C3064,
+                        ).withOpacity(0.45),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Add Patient',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Add Patient',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -236,6 +248,9 @@ class AddPatientPage extends StatelessWidget {
     String? hint,
     IconData? prefixIcon,
     bool isRequired = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,6 +276,9 @@ class AddPatientPage extends StatelessWidget {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
@@ -294,6 +312,81 @@ class AddPatientPage extends StatelessWidget {
     );
   }
 
+  Widget _buildDateField({
+    required String label,
+    required Rx<DateTime?> value,
+    required VoidCallback onTap,
+    bool isRequired = false,
+    String? hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+            children: [
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: Colors.red),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          final DateTime? selectedValue = value.value;
+          final bool isEmpty = selectedValue == null;
+          final String displayText = isEmpty
+              ? (hint ?? '')
+              : _formatDate(selectedValue);
+
+          return InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        color: isEmpty
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF1E293B),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    color: Color(0xFF94A3B8),
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   Widget _buildDropdownField({
     required String label,
     required RxString value,
@@ -323,92 +416,67 @@ class AddPatientPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Obx(
-              () => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
-                  color: Colors.white,
+        Obx(() {
+          final String? selectedValue = value.value.isEmpty
+              ? null
+              : value.value;
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+              color: Colors.white,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedValue,
+                dropdownColor: Colors.white,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF1E293B),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: value.value.isEmpty ? null : value.value,
-                    dropdownColor: Colors.white,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Color(0xFF1E293B),
-                    ),
-                    isExpanded: true,
-                    hint: hint != null
-                        ? Text(
-                            hint,
-                            style: const TextStyle(
-                              color: Color(0xFF1E293B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          )
-                        : null,
-                    selectedItemBuilder: (BuildContext context) {
-                      return items.map<Widget>((String item) {
-                        return Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            value.value,
-                            style: const TextStyle(
-                              color: Color(0xFF1E293B),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        );
-                      }).toList();
-                    },
-                    items: items.map((String item) {
-                      final bool isSelected = value.value == item;
-                      return DropdownMenuItem<String>(
-                        value: item,
-                        child: Transform.translate(
-                          offset: const Offset(-16, 0),
-                          child: Container(
-                            width: constraints.maxWidth + 32,
-                            height: 48, // Standard dropdown item height
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF38B6FF)
-                                  : Colors.white,
-                            ),
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              item,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF1E293B),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        value.value = newValue;
-                      }
-                    },
+                isExpanded: true,
+                hint: Text(
+                  hint ?? 'Select',
+                  style: const TextStyle(
+                    color: Color(0xFFCBD5E1),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
+                items: items
+                    .map(
+                      (String item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    value.value = newValue;
+                  }
+                },
               ),
-            );
-          },
-        ),
+            ),
+          );
+        }),
       ],
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final String day = date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    final String year = date.year.toString().padLeft(4, '0');
+    return '$day-$month-$year';
   }
 }

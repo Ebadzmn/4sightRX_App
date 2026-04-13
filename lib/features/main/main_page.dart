@@ -7,7 +7,10 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final MainController controller = Get.put(MainController());
+    final dynamic arguments = Get.arguments;
+    final MainController controller = Get.put(
+      MainController(initialIndex: arguments is int ? arguments : 0),
+    );
 
     return Scaffold(
       body: Obx(() => controller.pages[controller.selectedIndex.value]),
