@@ -7,6 +7,10 @@ class ApiEndpoints {
   static const String profile = '/user/profile';
   static const String updateProfile = '/user/profile';
   static const String patients = '/patients';
+  static String patientDetail(String patientId) {
+    return '$patients/${Uri.encodeComponent(patientId)}';
+  }
+
   static const String forgetPassword = '/auth/forget-password';
   static const String verifyEmail = '/auth/verify-email';
   static const String resetPassword = '/auth/reset-password';

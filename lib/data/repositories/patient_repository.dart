@@ -25,6 +25,42 @@ class PatientRepository {
 
   final ApiClient _apiClient;
 
+  Future<PatientModel> getPatientById(String patientId) async {
+    final trimmedPatientId = patientId.trim();
+    if (trimmedPatientId.isEmpty) {
+      throw NetworkException(message: 'Invalid patient ID');
+    }
+
+    final response = await _apiClient.get(
+      ApiEndpoints.patientDetail(trimmedPatientId),
+    );
+
+    final responseData = response.data;
+    if (responseData is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Something went wrong. Try again');
+    }
+
+    final success = responseData['success'] as bool? ?? false;
+    final message = responseData['message']?.toString() ?? '';
+    final data = responseData['data'];
+
+    if (!success) {
+      throw NetworkException(
+        message: _mapPatientDetailError(
+          message: message,
+          statusCode: response.statusCode,
+        ),
+        statusCode: response.statusCode,
+      );
+    }
+
+    if (data is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Something went wrong. Try again');
+    }
+
+    return PatientModel.fromJson(data);
+  }
+
   Future<PatientPageResult> fetchPatients({
     required int page,
     required int limit,
@@ -90,6 +126,32 @@ class PatientRepository {
       hasMorePages: hasMorePages,
       hasExplicitTotalPages: hasExplicitTotalPages,
     );
+  }
+
+  String _mapPatientDetailError({
+    required String message,
+    required int? statusCode,
+  }) {
+    final normalizedMessage = message.toLowerCase();
+
+    if (statusCode == 400 || normalizedMessage.contains('invalid')) {
+      return 'Invalid patient ID';
+    }
+
+    if (statusCode == 404 || normalizedMessage.contains('not found')) {
+      return 'Patient not found';
+    }
+
+    if (statusCode == 500 || normalizedMessage.contains('server error')) {
+      return 'Server error. Please try again';
+    }
+
+    if (normalizedMessage.contains('internet') ||
+        normalizedMessage.contains('connection')) {
+      return 'No internet connection';
+    }
+
+    return message.isNotEmpty ? message : 'Something went wrong. Try again';
   }
 
   List<PatientModel> _parsePatients(dynamic data) {

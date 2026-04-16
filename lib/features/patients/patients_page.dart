@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/patient_model.dart';
-import 'patients_controller.dart';
 import 'add_patient_page.dart';
-import '../patient_profile/pages/patient_profile_page.dart';
+import 'patient_detail_page.dart';
+import 'patients_controller.dart';
 
 class PatientsPage extends StatelessWidget {
   const PatientsPage({super.key});
@@ -297,7 +297,10 @@ class PatientsPage extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300, width: 1.3),
       ),
       child: InkWell(
-        onTap: () => Get.to(() => const PatientProfilePage()),
+        onTap: () => Get.to(
+          () => const PatientDetailPage(),
+          arguments: {'patientId': patient.id},
+        ),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
