@@ -7,6 +7,11 @@ class ApiEndpoints {
   static const String profile = '/user/profile';
   static const String updateProfile = '/user/profile';
   static const String patients = '/patients';
+  static const String medications = '/medications';
+  static const String medicationsBulk = '/medications/bulk';
+  static const String extractMedicationText = '/medications/extract-text';
+  static const String formularyComparisonAnalyze =
+      '/formulary-comparison/analyze';
   static String patientDetail(String patientId) {
     return '$patients/${Uri.encodeComponent(patientId)}';
   }

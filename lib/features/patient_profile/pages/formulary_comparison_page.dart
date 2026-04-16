@@ -10,7 +10,10 @@ class FormularyComparisonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(FormularyComparisonController());
+    final controller = Get.isRegistered<FormularyComparisonController>()
+        ? Get.find<FormularyComparisonController>()
+        : Get.put(FormularyComparisonController());
+    controller.ensureLoaded(Get.arguments);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -42,19 +45,29 @@ class FormularyComparisonPage extends StatelessWidget {
           children: [
             _buildStepper(),
             const SizedBox(height: 16),
-            _buildSummaryBanner(),
+            _buildSummaryBanner(controller),
             const SizedBox(height: 16),
             Obx(
-              () => Column(
-                children: List.generate(
-                  controller.comparisons.length,
-                  (index) => _buildComparisonCard(
-                    controller.comparisons[index],
-                    index,
-                    controller,
+              () {
+                if (controller.isAnalyzing.value) {
+                  return _buildLoadingState();
+                }
+
+                if (controller.comparisons.isEmpty) {
+                  return _buildErrorState(controller);
+                }
+
+                return Column(
+                  children: List.generate(
+                    controller.comparisons.length,
+                    (index) => _buildComparisonCard(
+                      controller.comparisons[index],
+                      index,
+                      controller,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
             const SizedBox(height: 8),
             // Info Card
@@ -99,24 +112,36 @@ class FormularyComparisonPage extends StatelessWidget {
           border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
         ),
         child: SafeArea(
-          child: ElevatedButton(
-            onPressed: () {
-              Get.to(() => const ReconciliationCompletePage());
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0C4A6E), // Dark navy blue
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 54),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: Obx(() {
+            final canContinue =
+                !controller.isAnalyzing.value && controller.comparisons.isNotEmpty;
+
+            return ElevatedButton(
+              onPressed: canContinue
+                  ? () {
+                      Get.to(() => const ReconciliationCompletePage());
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0C4A6E), // Dark navy blue
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 54),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                disabledBackgroundColor: const Color(0xFF0C4A6E).withOpacity(
+                  0.4,
+                ),
               ),
-            ),
-            child: const Text(
-              'Continue to Final Review',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
+              child: Text(
+                controller.isAnalyzing.value
+                    ? 'Analyzing medications...'
+                    : 'Continue to Final Review',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            );
+          }),
         ),
       ),
     );
@@ -203,7 +228,7 @@ class FormularyComparisonPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryBanner() {
+  Widget _buildSummaryBanner(FormularyComparisonController controller) {
     return Container(
       padding: const EdgeInsets.all(16),
       width: double.infinity,
@@ -229,19 +254,92 @@ class FormularyComparisonPage extends StatelessWidget {
             style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: const [
-              Icon(
-                Icons.info_outline,
-                color: Color(0xFF0F62FE), // Blue icon
-                size: 16,
+          const SizedBox(height: 4),
+          Obx(() {
+            return Text(
+              '${controller.comparisons.length} medications pending action',
+              style: const TextStyle(color: Color(0xFF0F62FE), fontSize: 13),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCEE0FF)),
+      ),
+      child: Column(
+        children: const [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Analyzing medications...',
+            style: TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Please wait while we compare the selected medications.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(FormularyComparisonController controller) {
+    final message = controller.errorMessage.value.isNotEmpty
+        ? controller.errorMessage.value
+        : 'Failed to analyze medications';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCEE0FF)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 28),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: controller.retryAnalysis,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0C4A6E),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              SizedBox(width: 6),
-              Text(
-                '8 medications pending action',
-                style: TextStyle(color: Color(0xFF0F62FE), fontSize: 13),
-              ),
-            ],
+            ),
+            child: const Text('Retry'),
           ),
         ],
       ),
@@ -303,22 +401,26 @@ class FormularyComparisonPage extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          item.currentDosage,
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 13,
+                        if (item.currentDosage.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            item.currentDosage,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.currentFrequency,
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 13,
+                        ],
+                        if (item.currentFrequency.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.currentFrequency,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),

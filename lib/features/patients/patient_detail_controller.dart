@@ -121,11 +121,17 @@ class PatientDetailController extends GetxController {
   }
 
   void uploadFile() {
-    Get.to(() => const UploadMedicationListPage());
+    Get.to(
+      () => const UploadMedicationListPage(),
+      arguments: {'patientId': patientId},
+    );
   }
 
   void takePhoto() {
-    Get.to(() => const TakePhotoPage());
+    Get.to(
+      () => const TakePhotoPage(),
+      arguments: {'patientId': patientId},
+    );
   }
 
   String _extractPatientId(dynamic arguments) {

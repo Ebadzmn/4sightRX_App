@@ -43,6 +43,7 @@ class AddMedicationPage extends StatelessWidget {
             _buildTextField(
               hint: 'Start typing medication name...',
               prefixIcon: Icons.search,
+              controller: controller.medicationNameController,
             ),
             const SizedBox(height: 16),
             Row(
@@ -53,7 +54,10 @@ class AddMedicationPage extends StatelessWidget {
                     children: [
                       _buildLabel('Strength', isRequired: true),
                       const SizedBox(height: 8),
-                      _buildTextField(hint: 'e.g., 10mg'),
+                      _buildTextField(
+                        hint: 'e.g., 10mg',
+                        controller: controller.strengthController,
+                      ),
                     ],
                   ),
                 ),
@@ -77,7 +81,10 @@ class AddMedicationPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildLabel('Dose', isRequired: true),
             const SizedBox(height: 8),
-            _buildTextField(hint: 'e.g., 1 tablet, 5ml'),
+            _buildTextField(
+              hint: 'e.g., 1 tablet, 5ml',
+              controller: controller.doseController,
+            ),
             const SizedBox(height: 16),
             _buildLabel('Route', isRequired: true),
             const SizedBox(height: 8),
@@ -97,11 +104,18 @@ class AddMedicationPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildLabel('Duration'),
             const SizedBox(height: 8),
-            _buildTextField(hint: 'e.g., 7 days, ongoing'),
+            _buildTextField(
+              hint: 'e.g., 7 days, ongoing',
+              controller: controller.durationController,
+            ),
             const SizedBox(height: 16),
             _buildLabel('Additional Instructions'),
             const SizedBox(height: 8),
-            _buildTextField(hint: 'Any special instructions...', maxLines: 4),
+            _buildTextField(
+              hint: 'Any special instructions...',
+              maxLines: 4,
+              controller: controller.instructionsController,
+            ),
             const SizedBox(height: 32),
           ],
         ),
@@ -131,23 +145,32 @@ class AddMedicationPage extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Save action
-                    Get.back();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0C4A6E), // Dark navy blue
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: Obx(
+                  () => ElevatedButton(
+                    onPressed: controller.isSaving.value
+                        ? null
+                        : controller.saveMedication,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C4A6E),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      disabledBackgroundColor: const Color(
+                        0xFF0C4A6E,
+                      ).withOpacity(0.4),
                     ),
-                  ),
-                  child: const Text(
-                    'Save Medication',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    child: Text(
+                      controller.isSaving.value
+                          ? 'Saving medication...'
+                          : 'Save Medication',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -187,8 +210,10 @@ class AddMedicationPage extends StatelessWidget {
     required String hint,
     IconData? prefixIcon,
     int maxLines = 1,
+    TextEditingController? controller,
   }) {
     return TextField(
+      controller: controller,
       maxLines: maxLines,
       style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B)),
       decoration: InputDecoration(

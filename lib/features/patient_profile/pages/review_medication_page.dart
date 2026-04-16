@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/review_medication_controller.dart';
+import '../../../data/models/medication_model.dart';
+import '../controllers/medication_ocr_controller.dart';
 import 'formulary_comparison_page.dart';
 import 'add_medication_page.dart';
 
@@ -9,7 +10,10 @@ class ReviewMedicationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ReviewMedicationController());
+    final MedicationOcrController controller =
+        Get.isRegistered<MedicationOcrController>()
+        ? Get.find<MedicationOcrController>()
+        : Get.put(MedicationOcrController());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -43,17 +47,38 @@ class ReviewMedicationPage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildSummaryBanner(),
             const SizedBox(height: 16),
-            Obx(
-              () => Column(
-                children: List.generate(
-                  controller.medications.length,
-                  (index) => _buildMedicationCard(
-                    controller.medications[index],
-                    () => controller.deleteMedication(index),
+            Obx(() {
+              if (controller.isLoading.value) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (controller.medicationList.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Text(
+                    controller.errorMessage.value.isNotEmpty
+                        ? controller.errorMessage.value
+                        : 'No medications detected',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 14,
+                    ),
                   ),
+                );
+              }
+
+              return Column(
+                children: List.generate(
+                  controller.medicationList.length,
+                  (index) =>
+                      _buildMedicationCard(controller.medicationList[index]),
                 ),
-              ),
-            ),
+              );
+            }),
             const SizedBox(height: 8),
             // Add Missing Medication Button
             OutlinedButton(
@@ -97,41 +122,85 @@ class ReviewMedicationPage extends StatelessWidget {
           border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  Get.to(() => const FormularyComparisonPage());
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0C4A6E), // Dark navy blue
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 54),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          child: Obx(() {
+            final isSubmitting = controller.isSubmitting.value;
+            final hasMedications = controller.medicationList.isNotEmpty;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting || !hasMedications
+                        ? null
+                        : () async {
+                            final medicationIds = await controller
+                                .submitReviewedMedications();
+                            final patientId = controller.patientId.value.trim();
+
+                            if (patientId.isEmpty) {
+                              Get.snackbar(
+                                'Failed to analyze medications',
+                                'Invalid patient ID',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                              return;
+                            }
+
+                            if (medicationIds.isNotEmpty) {
+                              Get.snackbar(
+                                'Success',
+                                'Medications saved successfully',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                              Get.off(
+                                () => const FormularyComparisonPage(),
+                                arguments: {
+                                  'patientId': patientId,
+                                  'medicationIds': medicationIds,
+                                },
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C4A6E),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 54),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      disabledBackgroundColor: const Color(
+                        0xFF0C4A6E,
+                      ).withOpacity(0.4),
+                    ),
+                    child: Text(
+                      isSubmitting
+                          ? 'Saving medications...'
+                          : 'Save Medication',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Continue to Formulary Check',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.warning, color: Color(0xFFD97706), size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'Please review highlighted medications before continuing',
+                      style: TextStyle(color: Color(0xFFD97706), fontSize: 12),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.warning, color: Color(0xFFD97706), size: 14),
-                  SizedBox(width: 6),
-                  Text(
-                    'Please review highlighted medications before continuing',
-                    style: TextStyle(color: Color(0xFFD97706), fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
         ),
       ),
     );
@@ -215,6 +284,10 @@ class ReviewMedicationPage extends StatelessWidget {
   }
 
   Widget _buildSummaryBanner() {
+    final controller = Get.isRegistered<MedicationOcrController>()
+        ? Get.find<MedicationOcrController>()
+        : Get.put(MedicationOcrController());
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -233,9 +306,9 @@ class ReviewMedicationPage extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              const Text(
-                '8 medications extracted',
-                style: TextStyle(
+              Text(
+                '${controller.medicationList.length} medications extracted',
+                style: const TextStyle(
                   color: Color(0xFF1E293B),
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -248,9 +321,9 @@ class ReviewMedicationPage extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 4),
-              const Text(
-                '1 need review',
-                style: TextStyle(
+              Text(
+                '${controller.medicationList.where((item) => item.needsReview).length} need review',
+                style: const TextStyle(
                   color: Color(0xFFD97706),
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -272,7 +345,7 @@ class ReviewMedicationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMedicationCard(MedicationItem item, VoidCallback onDelete) {
+  Widget _buildMedicationCard(MedicationModel item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -304,7 +377,7 @@ class ReviewMedicationPage extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      item.name,
+                      item.displayName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -323,7 +396,7 @@ class ReviewMedicationPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  item.dosage,
+                  item.strengthAndForm,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF64748B),
@@ -331,51 +404,38 @@ class ReviewMedicationPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  item.frequency,
+                  'Dose: ${item.dose.isEmpty ? 'Not provided' : item.dose}',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF64748B),
                   ),
                 ),
-                if (item.instructions.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    item.instructions,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF64748B),
-                    ),
+                const SizedBox(height: 6),
+                Text(
+                  'Route: ${item.route.isEmpty ? 'Not provided' : item.route}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
                   ),
-                ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Frequency: ${item.frequency.isEmpty ? 'Not provided' : item.frequency}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Duration: ${item.duration.isEmpty ? 'Not provided' : item.duration}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
               ],
             ),
-          ),
-          Column(
-            children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  // Edit action - placeholder
-                },
-                icon: const Icon(
-                  Icons.mode_edit_outline_outlined,
-                  color: Color(0xFF64748B),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(height: 16),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Color(0xFF64748B),
-                  size: 24,
-                ),
-              ),
-            ],
           ),
         ],
       ),
