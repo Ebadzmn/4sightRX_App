@@ -4,24 +4,28 @@ import '../../../core/network/network_exception.dart';
 import '../../../data/repositories/medication_repository.dart';
 
 class FormularyItem {
+  final String comparisonId;
   final String currentMedication;
   final String recommendedMedication;
   final String rationale;
   final String estimatedSavings;
   final String action;
+  final RxString actionState;
   final RxBool isHospiceCovered;
 
   FormularyItem({
+    required this.comparisonId,
     required this.currentMedication,
     required this.recommendedMedication,
     required this.rationale,
     required this.estimatedSavings,
     required this.action,
     bool hospiceCovered = false,
-  }) : isHospiceCovered = hospiceCovered.obs;
+  }) : actionState = action.obs, isHospiceCovered = hospiceCovered.obs;
 
   factory FormularyItem.fromJson(Map<String, dynamic> json) {
     return FormularyItem(
+      comparisonId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       currentMedication:
           json['currentMedication']?.toString() ??
           json['currentName']?.toString() ??
@@ -41,7 +45,7 @@ class FormularyItem {
           json['estimatedSavings']?.toString() ??
           json['savingsText']?.toString() ??
           '',
-      action: json['action']?.toString() ?? '',
+      action: '',
       hospiceCovered: _parseBool(json['hospiceCovered']),
     );
   }
@@ -75,7 +79,20 @@ class FormularyItem {
   }
 
   String get actionLabel {
-    return action.trim();
+    return actionState.value.trim();
+  }
+
+  String get actionDisplayLabel {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return 'Accepted';
+      case 'declined':
+        return 'Declined';
+      case 'discontinued':
+        return 'D/C';
+      default:
+        return '';
+    }
   }
 
   static bool _parseBool(dynamic value) {
@@ -93,7 +110,9 @@ class FormularyItem {
 
 class FormularyComparisonController extends GetxController {
   final RxBool isAnalyzing = false.obs;
+  final RxBool isUpdatingAction = false.obs;
   final RxString errorMessage = ''.obs;
+  final RxString selectedComparisonId = ''.obs;
   final RxList<FormularyItem> comparisons = <FormularyItem>[].obs;
 
   final MedicationRepository _medicationRepository = MedicationRepository();
@@ -182,6 +201,145 @@ class FormularyComparisonController extends GetxController {
   void toggleHospiceCoverage(int index) {
     comparisons[index].isHospiceCovered.value =
         !comparisons[index].isHospiceCovered.value;
+  }
+
+  Future<bool> acceptComparison(
+    FormularyItem item, {
+    String? acceptNote,
+  }) {
+    return _submitAction(
+      item: item,
+      action: 'accepted',
+      acceptNote: acceptNote,
+    );
+  }
+
+  Future<bool> declineComparison(
+    FormularyItem item, {
+    required String reasonNote,
+  }) {
+    return _submitAction(
+      item: item,
+      action: 'declined',
+      reasonNote: reasonNote,
+    );
+  }
+
+  Future<bool> discontinueComparison(
+    FormularyItem item, {
+    required String reasonNote,
+  }) {
+    return _submitAction(
+      item: item,
+      action: 'discontinued',
+      reasonNote: reasonNote,
+    );
+  }
+
+  Future<bool> _submitAction({
+    required FormularyItem item,
+    required String action,
+    String? acceptNote,
+    String? reasonNote,
+  }) async {
+    final comparisonId = item.comparisonId.trim();
+    if (comparisonId.isEmpty) {
+      Get.snackbar(
+        'Failed to update action',
+        'Failed to update action',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    }
+
+    if (isUpdatingAction.value) {
+      return false;
+    }
+
+    isUpdatingAction.value = true;
+    selectedComparisonId.value = comparisonId;
+    Get.snackbar(
+      'Updating action...',
+      'Please wait',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(days: 1),
+    );
+
+    try {
+      await _medicationRepository.updateFormularyComparisonAction(
+        comparisonId: comparisonId,
+        body: _buildActionBody(
+          action: action,
+          acceptNote: acceptNote,
+          reasonNote: reasonNote,
+        ),
+      );
+
+      item.actionState.value = action;
+
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
+      }
+
+      Get.snackbar(
+        'Success',
+        'Action updated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } on NetworkException catch (_) {
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
+      }
+
+      Get.snackbar(
+        'Failed to update action',
+        'Failed to update action',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } catch (_) {
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
+      }
+
+      Get.snackbar(
+        'Failed to update action',
+        'Failed to update action',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isUpdatingAction.value = false;
+      selectedComparisonId.value = '';
+    }
+  }
+
+  Map<String, dynamic> _buildActionBody({
+    required String action,
+    String? acceptNote,
+    String? reasonNote,
+  }) {
+    final normalizedAction = action.trim();
+
+    if (normalizedAction == 'accepted') {
+      final body = <String, dynamic>{'action': normalizedAction};
+      final note = acceptNote?.trim() ?? '';
+      if (note.isNotEmpty) {
+        body['acceptNote'] = note;
+      }
+      return body;
+    }
+
+    if (normalizedAction == 'declined' || normalizedAction == 'discontinued') {
+      final note = reasonNote?.trim() ?? '';
+      return {
+        'action': normalizedAction,
+        'reasonNote': note,
+      };
+    }
+
+    return {'action': normalizedAction};
   }
 
   ({String patientId, List<String> medicationIds}) _parseArguments(

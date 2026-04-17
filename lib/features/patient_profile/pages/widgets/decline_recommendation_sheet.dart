@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/formulary_comparison_controller.dart';
-import 'recommendation_declined_dialog.dart';
 
 class DeclineRecommendationController extends GetxController {
   final RxString selectedReason = ''.obs;
@@ -41,6 +40,9 @@ class DeclineRecommendationSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(DeclineRecommendationController());
+    final comparisonController = Get.isRegistered<FormularyComparisonController>()
+        ? Get.find<FormularyComparisonController>()
+        : Get.put(FormularyComparisonController());
 
     return Container(
       decoration: const BoxDecoration(
@@ -307,26 +309,30 @@ class DeclineRecommendationSheet extends StatelessWidget {
                           final canConfirm =
                               controller.selectedReason.isNotEmpty &&
                               (!controller.isOtherSelected.value ||
-                                  controller.otherDetails.isNotEmpty);
+                                      controller.otherDetails.isNotEmpty) &&
+                                  !comparisonController.isUpdatingAction.value;
 
                           return ElevatedButton(
-                            onPressed: canConfirm
-                                ? () {
-                                    Get.back(); // Close bottom sheet
-                                    Get.dialog(
-                                      const RecommendationDeclinedDialog(),
-                                    );
-                                    // Auto close dialog after 2 seconds
-                                    Future.delayed(
-                                      const Duration(seconds: 2),
-                                      () {
-                                        if (Get.isDialogOpen ?? false) {
-                                          Get.back();
+                                onPressed: canConfirm
+                                    ? () async {
+                                        final reasonNote = controller
+                                                .isOtherSelected.value
+                                            ? controller.otherDetails.value.trim()
+                                            : controller.selectedReason.value
+                                                .trim();
+
+                                        final success =
+                                            await comparisonController
+                                                .declineComparison(
+                                          item,
+                                          reasonNote: reasonNote,
+                                        );
+
+                                        if (success && context.mounted) {
+                                          Navigator.of(context).pop();
                                         }
-                                      },
-                                    );
-                                  }
-                                : null,
+                                      }
+                                    : null,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: canConfirm

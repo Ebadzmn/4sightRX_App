@@ -105,6 +105,36 @@ class MedicationRepository {
     return comparisons;
   }
 
+  Future<void> updateFormularyComparisonAction({
+    required String comparisonId,
+    required Map<String, dynamic> body,
+  }) async {
+    final trimmedComparisonId = comparisonId.trim();
+    if (trimmedComparisonId.isEmpty) {
+      throw NetworkException(message: 'Invalid comparison ID');
+    }
+
+    final response = await _apiClient.patch(
+      ApiEndpoints.formularyComparisonAction(trimmedComparisonId),
+      body: body,
+    );
+
+    final responseData = response.data;
+    if (responseData is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Failed to update action');
+    }
+
+    final success = responseData['success'] as bool? ?? false;
+    final message = responseData['message']?.toString() ?? '';
+
+    if (!success) {
+      throw NetworkException(
+        message: message.isNotEmpty ? message : 'Failed to update action',
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
   Future<MedicationModel> addMedication({
     required String medicationName,
     required String strength,

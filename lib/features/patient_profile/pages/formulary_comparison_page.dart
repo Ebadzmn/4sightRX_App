@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/formulary_comparison_controller.dart';
 import 'widgets/accept_recommendation_sheet.dart';
 import 'widgets/decline_recommendation_sheet.dart';
+import 'widgets/discontinue_recommendation_sheet.dart';
 import 'reconciliation_complete_page.dart';
 
 class FormularyComparisonPage extends StatelessWidget {
@@ -581,72 +582,127 @@ class FormularyComparisonPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                Obx(() {
+                  final actionLabel = item.actionDisplayLabel;
+                  if (actionLabel.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _actionBadgeBackground(actionLabel),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: _actionBadgeBorder(actionLabel),
+                          ),
+                        ),
+                        child: Text(
+                          'Action: $actionLabel',
+                          style: TextStyle(
+                            color: _actionBadgeForeground(actionLabel),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+
                 // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Get.bottomSheet(
-                            AcceptRecommendationSheet(item: item),
-                            isScrollControlled: true,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0C4A6E), // Dark navy
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                Obx(
+                  () {
+                    final isUpdating = controller.isUpdatingAction.value;
+                    final isActionCompleted = item.actionDisplayLabel.isNotEmpty;
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: ElevatedButton(
+                            onPressed: isUpdating || isActionCompleted
+                                ? null
+                                : () {
+                                    Get.bottomSheet(
+                                      AcceptRecommendationSheet(item: item),
+                                      isScrollControlled: true,
+                                    );
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0C4A6E),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Accept',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          'Accept',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 3,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Get.bottomSheet(
-                            DeclineRecommendationSheet(item: item),
-                            isScrollControlled: true,
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFEF4444), // Red
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Color(0xFFEF4444)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: OutlinedButton(
+                            onPressed: isUpdating || isActionCompleted
+                                ? null
+                                : () {
+                                    Get.bottomSheet(
+                                      DeclineRecommendationSheet(item: item),
+                                      isScrollControlled: true,
+                                    );
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFEF4444),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Color(0xFFEF4444)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Decline'),
                           ),
                         ),
-                        child: const Text('Decline'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 3,
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white, // Red
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Color(0xFFEF4444)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: OutlinedButton(
+                            onPressed: isUpdating || isActionCompleted
+                                ? null
+                                : () {
+                                    Get.bottomSheet(
+                                      DiscontinueRecommendationSheet(item: item),
+                                      isScrollControlled: true,
+                                    );
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Color(0xFFEF4444)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('D/C'),
                           ),
                         ),
-                        child: const Text('D/C'),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -654,5 +710,44 @@ class FormularyComparisonPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _actionBadgeBackground(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFFEFF6FF);
+      case 'declined':
+        return const Color(0xFFFEF2F2);
+      case 'd/c':
+        return const Color(0xFFFFF7ED);
+      default:
+        return const Color(0xFFF8FAFC);
+    }
+  }
+
+  Color _actionBadgeBorder(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFFBFDBFE);
+      case 'declined':
+        return const Color(0xFFFECACA);
+      case 'd/c':
+        return const Color(0xFFFED7AA);
+      default:
+        return const Color(0xFFE2E8F0);
+    }
+  }
+
+  Color _actionBadgeForeground(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFF1D4ED8);
+      case 'declined':
+        return const Color(0xFFB91C1C);
+      case 'd/c':
+        return const Color(0xFFB45309);
+      default:
+        return const Color(0xFF475569);
+    }
   }
 }

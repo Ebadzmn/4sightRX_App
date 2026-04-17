@@ -1,12 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/formulary_comparison_controller.dart';
-import 'recommendation_accepted_dialog.dart';
-
-class AcceptRecommendationSheet extends StatelessWidget {
+class AcceptRecommendationSheet extends StatefulWidget {
   final FormularyItem item;
 
   const AcceptRecommendationSheet({super.key, required this.item});
+
+  @override
+  State<AcceptRecommendationSheet> createState() =>
+      _AcceptRecommendationSheetState();
+}
+
+class _AcceptRecommendationSheetState extends State<AcceptRecommendationSheet> {
+  late final TextEditingController noteController;
+  late final FormularyComparisonController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    noteController = TextEditingController();
+    controller = Get.isRegistered<FormularyComparisonController>()
+        ? Get.find<FormularyComparisonController>()
+        : Get.put(FormularyComparisonController());
+  }
+
+  @override
+  void dispose() {
+    noteController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +142,7 @@ class AcceptRecommendationSheet extends StatelessWidget {
                                           ),
                                         ),
                                         TextSpan(
-                                          text: item.currentName,
+                                          text: widget.item.currentName,
                                           style: const TextStyle(
                                             color: Color(0xFF64748B),
                                             decoration:
@@ -142,7 +164,7 @@ class AcceptRecommendationSheet extends StatelessWidget {
                                           ),
                                         ),
                                         TextSpan(
-                                          text: item.recommendedName,
+                                          text: widget.item.recommendedName,
                                           style: const TextStyle(
                                             color: Color(0xFF1E293B),
                                             fontWeight: FontWeight.w600,
@@ -162,7 +184,7 @@ class AcceptRecommendationSheet extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Text(
-                                      item.savingsText,
+                                      widget.item.savingsText,
                                       style: const TextStyle(
                                         color: Color(0xFF059669),
                                         fontSize: 12,
@@ -202,6 +224,7 @@ class AcceptRecommendationSheet extends StatelessWidget {
 
                       // TextField
                       TextField(
+                        controller: noteController,
                         maxLines: 4,
                         decoration: InputDecoration(
                           hintText:
@@ -272,40 +295,44 @@ class AcceptRecommendationSheet extends StatelessWidget {
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Get.back(); // close the bottom sheet
-                                Get.dialog(
-                                  const RecommendationAcceptedDialog(),
-                                  barrierDismissible: true,
-                                );
+                            child: Obx(() {
+                              final isUpdating = controller.isUpdatingAction.value;
 
-                                // Auto dismiss after 2 seconds
-                                Future.delayed(const Duration(seconds: 2), () {
-                                  if (Get.isDialogOpen ?? false) {
-                                    Get.back();
-                                  }
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0C4A6E),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                              return ElevatedButton(
+                                onPressed: isUpdating
+                                    ? null
+                                    : () async {
+                                        final success = await controller
+                                            .acceptComparison(
+                                          widget.item,
+                                          acceptNote: noteController.text
+                                              .trim(),
+                                        );
+
+                                        if (success && context.mounted) {
+                                          Navigator.of(context).pop();
+                                        }
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0C4A6E),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                child: const Text(
+                                  'Confirm Accept',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'Confirm Accept',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
+                              );
+                            }),
                           ),
                         ],
                       ),

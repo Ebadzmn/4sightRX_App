@@ -12,6 +12,9 @@ class ApiEndpoints {
   static const String extractMedicationText = '/medications/extract-text';
   static const String formularyComparisonAnalyze =
       '/formulary-comparison/analyze';
+  static String formularyComparisonAction(String comparisonId) {
+    return '/formulary-comparison/$comparisonId/action';
+  }
   static String patientDetail(String patientId) {
     return '$patients/${Uri.encodeComponent(patientId)}';
   }
