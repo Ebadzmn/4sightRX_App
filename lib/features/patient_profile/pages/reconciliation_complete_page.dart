@@ -11,6 +11,7 @@ class ReconciliationCompletePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ReconciliationCompleteController());
+    controller.ensureLoaded(Get.arguments);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -64,118 +65,143 @@ class ReconciliationCompletePage extends StatelessWidget {
           child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            _buildStepper(),
-            const SizedBox(height: 20),
-            _buildSuccessBanner(),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Updated Medication List',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Review final medication list before export',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Continued Medications (${controller.continuedMedications.length})',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(
-                    controller.continuedMedications.length,
-                    (index) => _buildMedicationCard(
-                      controller.continuedMedications[index],
-                      index,
-                      controller,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Changed Medications (${controller.changedMedications.length})',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(
-                    controller.changedMedications.length,
-                    (index) => _buildChangedMedicationCard(
-                      controller.changedMedications[index],
-                      index,
-                      controller,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Discontinued/Deprescribed Medications (${controller.discontinuedMedications.length})',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(
-                    controller.discontinuedMedications.length,
-                    (index) => _buildDiscontinuedMedicationCard(
-                      controller.discontinuedMedications[index],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: () {
-                      Get.to(() => const ExportMedicationListPage());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0C4A6E),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Confirm Update Medication List',
+      body: Obx(() {
+        final hasError = controller.errorMessage.value.isNotEmpty &&
+            controller.continuedMedications.isEmpty &&
+            controller.changedMedications.isEmpty &&
+            controller.discontinuedMedications.isEmpty;
+
+        if (controller.isLoading.value) {
+          return _buildLoadingState();
+        }
+
+        if (hasError) {
+          return _buildErrorState(controller);
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              _buildStepper(),
+              const SizedBox(height: 20),
+              _buildSuccessBanner(controller),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Updated Medication List',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildExportSection(),
-                  const SizedBox(height: 24),
-                  _buildReconciliationDetailsBox(),
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Review final medication list before export',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Continued Medications (${controller.continuedMedications.length})',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (controller.continuedMedications.isEmpty)
+                      _buildEmptySectionMessage('No continued medications')
+                    else
+                      ...List.generate(
+                        controller.continuedMedications.length,
+                        (index) => _buildMedicationCard(
+                          controller.continuedMedications[index],
+                          index,
+                          controller,
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Changed Medications (${controller.changedMedications.length})',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (controller.changedMedications.isEmpty)
+                      _buildEmptySectionMessage('No changed medications')
+                    else
+                      ...List.generate(
+                        controller.changedMedications.length,
+                        (index) => _buildChangedMedicationCard(
+                          context,
+                          controller.changedMedications[index],
+                          index,
+                          controller,
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Discontinued/Deprescribed Medications (${controller.discontinuedMedications.length})',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (controller.discontinuedMedications.isEmpty)
+                      _buildEmptySectionMessage('No discontinued medications')
+                    else
+                      ...List.generate(
+                        controller.discontinuedMedications.length,
+                        (index) => _buildDiscontinuedMedicationCard(
+                          controller.discontinuedMedications[index],
+                        ),
+                      ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: () {
+                        Get.to(() => const ExportMedicationListPage());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C4A6E),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Confirm Update Medication List',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildExportSection(),
+                    const SizedBox(height: 24),
+                    _buildReconciliationDetailsBox(),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -279,18 +305,27 @@ class ReconciliationCompletePage extends StatelessWidget {
 
   Widget _buildDetailRow(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E40AF)),
+        Expanded(
+          flex: 3,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF1E40AF)),
+          ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF1E40AF),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 5,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            softWrap: true,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1E40AF),
+            ),
           ),
         ),
       ],
@@ -298,6 +333,7 @@ class ReconciliationCompletePage extends StatelessWidget {
   }
 
   Widget _buildChangedMedicationCard(
+    BuildContext context,
     ChangedMedicationItem item,
     int index,
     ReconciliationCompleteController controller,
@@ -316,17 +352,26 @@ class ReconciliationCompletePage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.52,
+                    ),
+                    child: Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -345,43 +390,84 @@ class ReconciliationCompletePage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (item.actionDisplayLabel.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _actionBadgeBackground(item.actionDisplayLabel),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _actionBadgeBorder(item.actionDisplayLabel),
+                        ),
+                      ),
+                      child: Text(
+                        item.actionDisplayLabel,
+                        style: TextStyle(
+                          color: _actionBadgeForeground(item.actionDisplayLabel),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 6),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.dosageInfo,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF64748B),
+                  Expanded(
+                    child: Text(
+                      item.dosageInfo,
+                      softWrap: true,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                   ),
-                  Text(
-                    item.oldMedName,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 13,
-                      decoration: TextDecoration.lineThrough,
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      item.oldMedName,
+                      textAlign: TextAlign.right,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 13,
+                        decoration: TextDecoration.lineThrough,
+                      ),
                     ),
                   ),
                 ],
               ),
+              if (item.frequency.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  item.frequency,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
               const SizedBox(height: 4),
               RichText(
                 text: TextSpan(
                   children: [
                     const TextSpan(
-                      text: 'Changed from ',
+                      text: 'Covered: ',
                       style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
                     ),
                     TextSpan(
-                      text: item.oldMedName,
+                      text: item.hospiceLabel,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
                         fontSize: 13,
-                        decoration: TextDecoration.lineThrough,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -462,16 +548,20 @@ class ReconciliationCompletePage extends StatelessWidget {
               color: Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            item.dosage,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.frequency,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-          ),
+          if (item.dosage.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              item.dosage,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+          ],
+          if (item.frequency.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              item.frequency,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+          ],
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -489,6 +579,101 @@ class ReconciliationCompletePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySectionMessage(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading reconciliation summary...',
+              style: TextStyle(
+                color: Color(0xFF1E293B),
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ReconciliationCompleteController controller) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFCEE0FF)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 28),
+              const SizedBox(height: 12),
+              Text(
+                controller.errorMessage.value.isNotEmpty
+                    ? controller.errorMessage.value
+                    : 'Failed to load reconciliation summary',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF1E293B),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: controller.retrySummary,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C4A6E),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -553,7 +738,13 @@ class ReconciliationCompletePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSuccessBanner() {
+  Widget _buildSuccessBanner(ReconciliationCompleteController controller) {
+    final activeCount =
+        controller.continuedMedications.length + controller.changedMedications.length;
+    final changesCount = controller.changedMedications.length;
+    final savingsValue =
+        controller.totalSavings.value.isNotEmpty ? controller.totalSavings.value : '\$0';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       width: double.infinity,
@@ -611,9 +802,9 @@ class ReconciliationCompletePage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('7', 'Active Meds'),
-              _buildStatItem('2', 'Changes'),
-              _buildStatItem('\$105', 'Monthly Savings'),
+              _buildStatItem('$activeCount', 'Active Meds'),
+              _buildStatItem('$changesCount', 'Changes'),
+              _buildStatItem(savingsValue, 'Monthly Savings'),
             ],
           ),
         ],
@@ -669,16 +860,20 @@ class ReconciliationCompletePage extends StatelessWidget {
                   color: Color(0xFF1E293B),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                item.dosage,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.frequency,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
+              if (item.dosage.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  item.dosage,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                ),
+              ],
+              if (item.frequency.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  item.frequency,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                ),
+              ],
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: () => controller.toggleContinuedHospice(index),
@@ -710,9 +905,14 @@ class ReconciliationCompletePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Hospice covered',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    Obx(
+                      () => Text(
+                        item.isHospiceCovered.value ? 'Yes' : 'No',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -731,5 +931,44 @@ class ReconciliationCompletePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _actionBadgeBackground(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFFEFF6FF);
+      case 'declined':
+        return const Color(0xFFFEF2F2);
+      case 'd/c':
+        return const Color(0xFFFFF7ED);
+      default:
+        return const Color(0xFFF8FAFC);
+    }
+  }
+
+  Color _actionBadgeBorder(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFFBFDBFE);
+      case 'declined':
+        return const Color(0xFFFECACA);
+      case 'd/c':
+        return const Color(0xFFFED7AA);
+      default:
+        return const Color(0xFFE2E8F0);
+    }
+  }
+
+  Color _actionBadgeForeground(String actionLabel) {
+    switch (actionLabel.toLowerCase()) {
+      case 'accepted':
+        return const Color(0xFF1D4ED8);
+      case 'declined':
+        return const Color(0xFFB91C1C);
+      case 'd/c':
+        return const Color(0xFFB45309);
+      default:
+        return const Color(0xFF475569);
+    }
   }
 }

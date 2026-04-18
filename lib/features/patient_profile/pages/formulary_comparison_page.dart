@@ -120,7 +120,10 @@ class FormularyComparisonPage extends StatelessWidget {
             return ElevatedButton(
               onPressed: canContinue
                   ? () {
-                      Get.to(() => const ReconciliationCompletePage());
+                      Get.to(
+                        () => const ReconciliationCompletePage(),
+                        arguments: {'patientId': controller.patientId},
+                      );
                     }
                   : null,
               style: ElevatedButton.styleFrom(

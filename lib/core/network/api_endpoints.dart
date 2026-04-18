@@ -12,6 +12,8 @@ class ApiEndpoints {
   static const String extractMedicationText = '/medications/extract-text';
   static const String formularyComparisonAnalyze =
       '/formulary-comparison/analyze';
+  static const String formularyComparisonSummary =
+      '/formulary-comparison/summary';
   static String formularyComparisonAction(String comparisonId) {
     return '/formulary-comparison/$comparisonId/action';
   }

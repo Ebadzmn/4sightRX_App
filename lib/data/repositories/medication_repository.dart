@@ -105,6 +105,44 @@ class MedicationRepository {
     return comparisons;
   }
 
+  Future<Map<String, dynamic>> fetchFormularyComparisonSummary({
+    required String patientId,
+  }) async {
+    final trimmedPatientId = patientId.trim();
+    if (trimmedPatientId.isEmpty) {
+      throw NetworkException(message: 'Invalid patient ID');
+    }
+
+    final response = await _apiClient.get(
+      ApiEndpoints.formularyComparisonSummary,
+      query: {'patientId': trimmedPatientId},
+    );
+
+    final responseData = response.data;
+    if (responseData is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Failed to load reconciliation summary');
+    }
+
+    final success = responseData['success'] as bool? ?? false;
+    final message = responseData['message']?.toString() ?? '';
+    final data = responseData['data'];
+
+    if (!success) {
+      throw NetworkException(
+        message: message.isNotEmpty
+            ? message
+            : 'Failed to load reconciliation summary',
+        statusCode: response.statusCode,
+      );
+    }
+
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    throw NetworkException(message: 'Failed to load reconciliation summary');
+  }
+
   Future<void> updateFormularyComparisonAction({
     required String comparisonId,
     required Map<String, dynamic> body,
