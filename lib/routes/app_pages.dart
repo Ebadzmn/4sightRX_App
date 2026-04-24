@@ -7,6 +7,7 @@ import '../features/auth/forgot_password/forgot_password_page.dart';
 import '../features/home/home_binding.dart';
 import '../features/main/main_page.dart';
 import '../features/splash/splash_page.dart';
+import '../features/recent_activity/recent_activity_page.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -24,6 +25,10 @@ class AppPages {
       name: AppRoutes.home,
       page: () => const MainPage(),
       binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.recentActivity,
+      page: () => const RecentActivityPage(),
     ),
   ];
 }

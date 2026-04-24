@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/export_medication_list_controller.dart';
+import '../controllers/reconciliation_complete_controller.dart';
 import '../../main/main_page.dart';
 import '../../main/main_controller.dart';
 
@@ -10,6 +11,8 @@ class ExportMedicationListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ExportMedicationListController());
+    final reconController = Get.find<ReconciliationCompleteController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
@@ -36,7 +39,7 @@ class ExportMedicationListPage extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
-        currentIndex: 1, // Patients tab
+        currentIndex: 1,
         onTap: (index) {
           if (index == 1) return;
           final mainController = Get.put(MainController());
@@ -71,7 +74,7 @@ class ExportMedicationListPage extends StatelessWidget {
               const SizedBox(height: 16),
               _buildConnectedStatusBanner(),
               const SizedBox(height: 20),
-              _buildReconciliationSummary(),
+              _buildReconciliationSummary(reconController),
               const SizedBox(height: 24),
               const Text(
                 'Primary Export',
@@ -88,17 +91,6 @@ class ExportMedicationListPage extends StatelessWidget {
                     : _buildExportToEMRCard(controller),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Alternative Options',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildAlternativeOptionsRow(),
-              const SizedBox(height: 24),
               _buildExportIncludesBox(),
               const SizedBox(height: 32),
             ],
@@ -114,7 +106,7 @@ class ExportMedicationListPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         color: const Color(0xFFF0FDF4),
-        border: Border.all(color: const Color(0xFF86EFAC).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFF86EFAC).withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -135,86 +127,113 @@ class ExportMedicationListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildReconciliationSummary() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Reconciliation Summary',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1E293B),
+  Widget _buildReconciliationSummary(ReconciliationCompleteController reconController) {
+    return Obx(() {
+      final patient = reconController.patientInfo.value;
+      final patientName = patient?.fullName ?? '—';
+      final mrn = patient?.mrn ?? '—';
+      final dob = patient?.dateOfBirth ?? '—';
+      final gender = patient?.gender ?? '—';
+      final phone = patient?.phoneNumber ?? '—';
+      final allergies = patient?.medicationAllergies ?? '—';
+      final totalMeds = reconController.totalMedications;
+      final continued = reconController.continuedMedications.length;
+      final declined = reconController.declinedMedications.length;
+      final savings = reconController.savingsText;
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Reconciliation Summary',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          _buildSummaryRow('Patient', 'Margaret Thompson', isValueBold: false),
-          const SizedBox(height: 12),
-          _buildSummaryRow('MRN', 'MRN-45678', isValueBold: false),
-          const SizedBox(height: 12),
-          _buildSummaryRow(
-            'Reconciled by',
-            'Dr. Sarah Johnson, PharmD',
-            isValueBold: false,
-          ),
-          const SizedBox(height: 12),
-          _buildSummaryRow(
-            'Date/Time',
-            'Feb 8, 2026 at 2:45 PM',
-            isValueBold: false,
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: Color(0xFFF1F5F9), height: 1),
-          const SizedBox(height: 16),
-          _buildSummaryRow(
-            'Active Medications',
-            '8 medications',
-            valueColor: const Color(0xFF10B981),
-          ),
-          const SizedBox(height: 12),
-          _buildSummaryRow(
-            'Interchanges Accepted',
-            '3',
-            valueColor: const Color(0xFF10B981),
-          ),
-          const SizedBox(height: 12),
-          _buildSummaryRow(
-            'Estimated Savings',
-            '\$270/month',
-            valueColor: const Color(0xFF10B981),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 20),
+
+            // Patient Info Section
+            _buildSummaryRow('Patient', patientName),
+            const SizedBox(height: 12),
+            _buildSummaryRow('MRN', mrn),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Date of Birth', dob),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Gender', gender),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Phone', phone),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Allergies', allergies),
+
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFF1F5F9), height: 1),
+            const SizedBox(height: 16),
+
+            // Stats Section
+            _buildSummaryRow(
+              'Total Medications',
+              '$totalMeds medications',
+              valueColor: const Color(0xFF1D4ED8),
+            ),
+            const SizedBox(height: 12),
+            _buildSummaryRow(
+              'Continued',
+              '$continued',
+              valueColor: const Color(0xFF10B981),
+            ),
+            if (declined > 0) ...[
+              const SizedBox(height: 12),
+              _buildSummaryRow(
+                'Declined',
+                '$declined',
+                valueColor: const Color(0xFFEF4444),
+              ),
+            ],
+            const SizedBox(height: 12),
+            _buildSummaryRow(
+              'Estimated Savings',
+              '$savings/month',
+              valueColor: const Color(0xFF10B981),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildSummaryRow(
     String label,
     String value, {
     Color? valueColor,
-    bool isValueBold = false,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: valueColor ?? const Color(0xFF334155),
-            fontWeight: isValueBold ? FontWeight.bold : FontWeight.normal,
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 14,
+              color: valueColor ?? const Color(0xFF334155),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -257,9 +276,9 @@ class ExportMedicationListPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
             colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
-            begin: Alignment(-0.8, -0.6), // Approximate angle of 106.24deg
+            begin: Alignment(-0.8, -0.6),
             end: Alignment(0.8, 0.6),
-            stops: [0.0164, 0.467], // 1.64% and 46.7%
+            stops: [0.0164, 0.467],
           ),
         ),
         child: Row(
@@ -267,7 +286,7 @@ class ExportMedicationListPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
+                color: Colors.white.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -300,69 +319,6 @@ class ExportMedicationListPage extends StatelessWidget {
             const Icon(Icons.arrow_forward, color: Colors.white, size: 24),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAlternativeOptionsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildOptionCard(
-            Icons.description_outlined,
-            'Generate PDF',
-            const Color(0xFFEF4444),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildOptionCard(
-            Icons.content_copy_outlined,
-            'Copy List',
-            const Color(0xFF3B82F6),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildOptionCard(
-            Icons.share_outlined,
-            'Share',
-            const Color(0xFF10B981),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOptionCard(IconData icon, String label, Color iconColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: iconColor, size: 28),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }

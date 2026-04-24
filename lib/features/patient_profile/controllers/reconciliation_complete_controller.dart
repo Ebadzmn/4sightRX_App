@@ -1,130 +1,78 @@
-import 'package:get/get.dart';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
+
+import 'package:share_plus/share_plus.dart';
+
+import '../../../core/network/api_client.dart';
 import '../../../core/network/network_exception.dart';
 import '../../../data/repositories/medication_repository.dart';
 
-class FinalMedicationItem {
-  final String medicationId;
-  final String name;
-  final String dosage;
-  final String frequency;
-  final RxBool isHospiceCovered;
-
-  FinalMedicationItem({
-    required this.medicationId,
-    required this.name,
-    required this.dosage,
-    required this.frequency,
-    bool isHospiceCovered = true,
-  }) : isHospiceCovered = isHospiceCovered.obs;
-
-  factory FinalMedicationItem.fromJson(Map<String, dynamic> json) {
-    return FinalMedicationItem(
-      medicationId: _extractIdentifier(json),
-      name: _firstString(json, [
-        'currentMedication',
-        'currentName',
-        'medicationName',
-        'name',
-        'drugName',
-      ]),
-      dosage: _firstString(json, [
-        'dosage',
-        'strength',
-        'dose',
-        'dosageInfo',
-        'instructions',
-      ]),
-      frequency: _firstString(json, [
-        'frequency',
-        'schedule',
-        'frequencyInfo',
-        'routeFrequency',
-      ]),
-      isHospiceCovered: _parseBool(_readValue(json, 'hospiceCovered')),
-    );
-  }
-
-  String get hospiceLabel => isHospiceCovered.value ? 'Yes' : 'No';
-}
-
-class ChangedMedicationItem {
+class ReconciliationMedicationItem {
   final String comparisonId;
   final String currentMedication;
   final String recommendedMedication;
   final String rationale;
-  final String estimatedSavings;
+  final double estimatedSavings;
   final String action;
   final RxBool isHospiceCovered;
+  final String medicationName;
+  final String strength;
+  final String dose;
+  final String frequency;
 
-  ChangedMedicationItem({
+  ReconciliationMedicationItem({
     required this.comparisonId,
     required this.currentMedication,
     required this.recommendedMedication,
     required this.rationale,
     required this.estimatedSavings,
     required this.action,
-    bool isHospiceCovered = true,
+    bool isHospiceCovered = false,
+    required this.medicationName,
+    required this.strength,
+    required this.dose,
+    required this.frequency,
   }) : isHospiceCovered = isHospiceCovered.obs;
 
-  factory ChangedMedicationItem.fromJson(Map<String, dynamic> json) {
-    return ChangedMedicationItem(
-      comparisonId: _extractIdentifier(json),
-      currentMedication: _firstString(json, [
-        'currentMedication',
-        'currentName',
-        'currentDrug',
-      ]),
-      recommendedMedication: _firstString(json, [
-        'recommendedMedication',
-        'recommendedName',
-        'suggestedDrug',
-        'newMedication',
-      ]),
-      rationale: _firstString(json, [
-        'rationale',
-        'warningText',
-        'explanation',
-        'reason',
-      ]),
-      estimatedSavings: _firstString(json, [
-        'estimatedSavings',
-        'savingsText',
-        'monthlySavings',
-      ])
-          .let(_formatSavings),
-      action: _firstString(json, ['action', 'status']),
-      isHospiceCovered: _parseBool(_readValue(json, 'hospiceCovered')),
+  factory ReconciliationMedicationItem.fromJson(Map<String, dynamic> json) {
+    final medicationId = json['medicationId'];
+    String medName = '';
+    String medStrength = '';
+    String medDose = '';
+    String medFrequency = '';
+
+    if (medicationId is Map<String, dynamic>) {
+      medName = medicationId['medicationName']?.toString() ?? '';
+      medStrength = medicationId['strength']?.toString() ?? '';
+      medDose = medicationId['dose']?.toString() ?? '';
+      medFrequency = medicationId['frequency']?.toString() ?? '';
+    }
+
+    return ReconciliationMedicationItem(
+      comparisonId: json['_id']?.toString() ?? '',
+      currentMedication: json['currentMedication']?.toString() ?? '',
+      recommendedMedication: json['recommendedMedication']?.toString() ?? '',
+      rationale: json['rationale']?.toString() ?? '',
+      estimatedSavings: _parseDouble(json['estimatedSavings']),
+      action: json['action']?.toString() ?? '',
+      isHospiceCovered: json['hospiceCovered'] == true,
+      medicationName: medName,
+      strength: medStrength,
+      dose: medDose,
+      frequency: medFrequency,
     );
   }
 
-  String get name {
-    final preferredName = recommendedMedication.trim();
-    if (preferredName.isNotEmpty) {
-      return preferredName;
-    }
-
-    return currentMedication.trim().isNotEmpty ? currentMedication : 'Not provided';
+  String get savingsText {
+    if (estimatedSavings <= 0) return '';
+    return '\$${estimatedSavings.toStringAsFixed(0)}';
   }
-
-  String get dosageInfo {
-    return rationale.trim().isNotEmpty ? rationale : 'No rationale provided';
-  }
-
-  String get oldMedName {
-    return currentMedication.trim().isNotEmpty ? currentMedication : 'Not provided';
-  }
-
-  String get frequency {
-    return estimatedSavings.trim().isNotEmpty
-        ? 'Savings: $estimatedSavings'
-        : '';
-  }
-
-  String get actionLabel => action.trim();
 
   String get actionDisplayLabel {
-    switch (actionLabel.toLowerCase()) {
+    switch (action.toLowerCase()) {
       case 'accepted':
         return 'Accepted';
       case 'declined':
@@ -132,68 +80,74 @@ class ChangedMedicationItem {
       case 'discontinued':
         return 'D/C';
       default:
-        return '';
+        return action;
     }
   }
 
   String get hospiceLabel => isHospiceCovered.value ? 'Yes' : 'No';
+
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
 }
 
-class DiscontinuedMedicationItem {
-  final String comparisonId;
-  final String name;
-  final String dosage;
-  final String frequency;
-  final String reason;
+class PatientInfo {
+  final String firstName;
+  final String lastName;
+  final String mrn;
+  final String dateOfBirth;
+  final int age;
+  final String gender;
+  final String phoneNumber;
+  final String medicationAllergies;
+  final String notes;
 
-  DiscontinuedMedicationItem({
-    required this.comparisonId,
-    required this.name,
-    required this.dosage,
-    required this.frequency,
-    required this.reason,
+  PatientInfo({
+    required this.firstName,
+    required this.lastName,
+    required this.mrn,
+    required this.dateOfBirth,
+    required this.age,
+    required this.gender,
+    required this.phoneNumber,
+    required this.medicationAllergies,
+    required this.notes,
   });
 
-  factory DiscontinuedMedicationItem.fromJson(Map<String, dynamic> json) {
-    return DiscontinuedMedicationItem(
-      comparisonId: _extractIdentifier(json),
-      name: _firstString(json, [
-        'currentMedication',
-        'currentName',
-        'medicationName',
-        'name',
-        'drugName',
-      ]),
-      dosage: _firstString(json, [
-        'dosage',
-        'strength',
-        'dose',
-      ]),
-      frequency: _firstString(json, [
-        'frequency',
-        'schedule',
-        'routeFrequency',
-      ]),
-      reason: _firstString(json, [
-        'reasonNote',
-        'reason',
-        'rationale',
-        'explanation',
-      ]),
+  factory PatientInfo.fromJson(Map<String, dynamic> json) {
+    return PatientInfo(
+      firstName: json['firstName']?.toString() ?? '',
+      lastName: json['lastName']?.toString() ?? '',
+      mrn: json['patientIdMrn']?.toString() ?? '',
+      dateOfBirth: json['dateOfBirth']?.toString() ?? '',
+      age: json['age'] is int ? json['age'] : 0,
+      gender: json['gender']?.toString() ?? '',
+      phoneNumber: json['phoneNumber']?.toString() ?? '',
+      medicationAllergies: json['medicationAllergies']?.toString() ?? '',
+      notes: json['notes']?.toString() ?? '',
     );
   }
+
+  String get fullName => '$firstName $lastName'.trim();
 }
 
 class ReconciliationCompleteController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
-  final RxString totalSavings = ''.obs;
-  final RxList<FinalMedicationItem> continuedMedications =
-      <FinalMedicationItem>[].obs;
-  final RxList<ChangedMedicationItem> changedMedications =
-      <ChangedMedicationItem>[].obs;
-  final RxList<DiscontinuedMedicationItem> discontinuedMedications =
-      <DiscontinuedMedicationItem>[].obs;
+  final RxDouble totalEstimatedMonthlySavings = 0.0.obs;
+  final RxString pdfUrl = ''.obs;
+  final Rx<PatientInfo?> patientInfo = Rx<PatientInfo?>(null);
+  final RxBool isDownloading = false.obs;
+  final RxBool isSharing = false.obs;
+
+  final RxList<ReconciliationMedicationItem> continuedMedications =
+      <ReconciliationMedicationItem>[].obs;
+  final RxList<ReconciliationMedicationItem> discontinuedMedications =
+      <ReconciliationMedicationItem>[].obs;
+  final RxList<ReconciliationMedicationItem> declinedMedications =
+      <ReconciliationMedicationItem>[].obs;
 
   final MedicationRepository _medicationRepository = MedicationRepository();
 
@@ -216,8 +170,8 @@ class ReconciliationCompleteController extends GetxController {
     if (requestKey == _loadedPatientKey &&
         (isLoading.value ||
             continuedMedications.isNotEmpty ||
-            changedMedications.isNotEmpty ||
             discontinuedMedications.isNotEmpty ||
+            declinedMedications.isNotEmpty ||
             errorMessage.value.isNotEmpty)) {
       return;
     }
@@ -253,12 +207,8 @@ class ReconciliationCompleteController extends GetxController {
       final data = await _medicationRepository.fetchFormularyComparisonSummary(
         patientId: patientId,
       );
-      final parsed = _parseSummary(data);
 
-      continuedMedications.assignAll(parsed.continuedMedications);
-      changedMedications.assignAll(parsed.changedMedications);
-      discontinuedMedications.assignAll(parsed.discontinuedMedications);
-      totalSavings.value = parsed.totalEstimatedMonthlySavings;
+      _parseSummary(data);
 
       if (force) {
         _loadedPatientKey = patientId;
@@ -274,112 +224,178 @@ class ReconciliationCompleteController extends GetxController {
     }
   }
 
-  void toggleContinuedHospice(int index) {
-    continuedMedications[index].isHospiceCovered.toggle();
+  void _parseSummary(Map<String, dynamic> data) {
+    // Parse continued medications
+    final continuedList = _extractList(data, 'continuedMedications');
+    continuedMedications.assignAll(
+      continuedList.map(ReconciliationMedicationItem.fromJson).toList(),
+    );
+
+    // Parse discontinued medications
+    final discontinuedList = _extractList(data, 'discontinuedMedications');
+    discontinuedMedications.assignAll(
+      discontinuedList.map(ReconciliationMedicationItem.fromJson).toList(),
+    );
+
+    // Parse declined medications
+    final declinedList = _extractList(data, 'declinedMedications');
+    declinedMedications.assignAll(
+      declinedList.map(ReconciliationMedicationItem.fromJson).toList(),
+    );
+
+    // Parse total savings
+    final savings = data['totalEstimatedMonthlySavings'];
+    if (savings is num) {
+      totalEstimatedMonthlySavings.value = savings.toDouble();
+    }
+
+    // Parse PDF URL
+    pdfUrl.value = data['pdfUrl']?.toString() ?? '';
+
+    // Extract patient info from the first available medication
+    _extractPatientInfo(data);
   }
 
-  void toggleChangedHospice(int index) {
-    changedMedications[index].isHospiceCovered.toggle();
+  void _extractPatientInfo(Map<String, dynamic> data) {
+    final allLists = [
+      ...(_extractList(data, 'continuedMedications')),
+      ...(_extractList(data, 'discontinuedMedications')),
+      ...(_extractList(data, 'declinedMedications')),
+    ];
+
+    for (final item in allLists) {
+      final patientData = item['patientId'];
+      if (patientData is Map<String, dynamic>) {
+        patientInfo.value = PatientInfo.fromJson(patientData);
+        return;
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _extractList(
+    Map<String, dynamic> data,
+    String key,
+  ) {
+    final value = data[key];
+    if (value is List) {
+      return value.whereType<Map<String, dynamic>>().toList();
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  /// Downloads the PDF to a temp file and returns its path.
+  Future<String?> _downloadPdf() async {
+    if (pdfUrl.value.isEmpty) {
+      Get.snackbar('Error', 'PDF URL not available',
+          snackPosition: SnackPosition.BOTTOM);
+      return null;
+    }
+
+    try {
+      final dir = Directory.systemTemp;
+      final fileName =
+          'reconciliation_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final savePath = '${dir.path}/$fileName';
+
+      // pdfUrl = "/api/v1/formulary-comparison/download-pdf/..."
+      // Dio baseUrl = "http://host:port/api/v1"
+      // Strip "/api/v1" prefix so Dio resolves it correctly with its baseUrl
+      String downloadPath = pdfUrl.value;
+      if (downloadPath.startsWith('/api/v1')) {
+        downloadPath = downloadPath.replaceFirst('/api/v1', '');
+      }
+
+      debugPrint('📥 PDF Download → path: $downloadPath');
+      debugPrint('📥 PDF Download → savePath: $savePath');
+
+      await ApiClient.instance.download(downloadPath, savePath);
+
+      final file = File(savePath);
+      if (!await file.exists()) {
+        debugPrint('❌ PDF file does not exist at: $savePath');
+        Get.snackbar('Error', 'Downloaded file not found',
+            snackPosition: SnackPosition.BOTTOM);
+        return null;
+      }
+
+      final fileSize = await file.length();
+      debugPrint('✅ PDF downloaded successfully → size: $fileSize bytes');
+
+      if (fileSize == 0) {
+        debugPrint('❌ PDF file is empty');
+        Get.snackbar('Error', 'Downloaded PDF is empty',
+            snackPosition: SnackPosition.BOTTOM);
+        return null;
+      }
+
+      return savePath;
+    } on NetworkException catch (e) {
+      debugPrint('❌ PDF download NetworkException: ${e.message}');
+      Get.snackbar('Download Failed', e.message,
+          snackPosition: SnackPosition.BOTTOM);
+      return null;
+    } catch (e) {
+      debugPrint('❌ PDF download error: $e');
+      Get.snackbar('Download Failed', '$e',
+          snackPosition: SnackPosition.BOTTOM);
+      return null;
+    }
+  }
+
+  /// Download and open PDF using open_filex.
+  Future<void> downloadAndOpenPdf() async {
+    if (isDownloading.value) return;
+    isDownloading.value = true;
+
+    try {
+      final path = await _downloadPdf();
+      if (path != null) {
+        debugPrint('📂 Opening PDF: $path');
+        final result = await OpenFilex.open(path);
+        debugPrint('📂 OpenFilex result: ${result.type} — ${result.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Open PDF error: $e');
+      Get.snackbar('Error', 'Could not open PDF',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isDownloading.value = false;
+    }
+  }
+
+  /// Download and share PDF using share_plus.
+  Future<void> sharePdf() async {
+    if (isSharing.value) return;
+    isSharing.value = true;
+
+    try {
+      final path = await _downloadPdf();
+      if (path != null) {
+        debugPrint('📤 Sharing PDF: $path');
+        final patientName = patientInfo.value?.fullName ?? 'Patient';
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(path)],
+            subject: 'Reconciliation Report — $patientName',
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Share PDF error: $e');
+      Get.snackbar('Error', 'Could not share PDF',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isSharing.value = false;
+    }
   }
 
   void _clearData() {
     continuedMedications.clear();
-    changedMedications.clear();
     discontinuedMedications.clear();
-    totalSavings.value = '';
-  }
-
-  _SummaryParseResult _parseSummary(Map<String, dynamic> data) {
-    final continuedItems = _extractSectionList(
-      data,
-      const ['continuedMedications', 'continued', 'activeMedications'],
-    );
-    final changedItems = _extractSectionList(
-      data,
-      const ['changedMedications', 'changed', 'comparisons'],
-    );
-    final discontinuedItems = _extractSectionList(
-      data,
-      const ['discontinuedMedications', 'discontinued', 'stoppedMedications'],
-    );
-
-    return _SummaryParseResult(
-      continuedMedications: continuedItems
-          .map(FinalMedicationItem.fromJson)
-          .toList(),
-      changedMedications:
-          changedItems.map(ChangedMedicationItem.fromJson).toList(),
-      discontinuedMedications: discontinuedItems
-          .map(DiscontinuedMedicationItem.fromJson)
-          .toList(),
-      totalEstimatedMonthlySavings: _formatSavings(
-        _readValue(data, 'totalEstimatedMonthlySavings') ??
-            _readValue(data, 'totalSavings') ??
-            _readValue(data, 'monthlySavings'),
-      ),
-    );
-  }
-
-  List<Map<String, dynamic>> _extractSectionList(
-    Map<String, dynamic> data,
-    List<String> keys,
-  ) {
-    for (final key in keys) {
-      final candidate = _readValue(data, key);
-      final list = _normalizeList(candidate);
-      if (list.isNotEmpty) {
-        return _dedupeByIdentifier(list);
-      }
-    }
-
-    return <Map<String, dynamic>>[];
-  }
-
-  List<Map<String, dynamic>> _normalizeList(dynamic candidate) {
-    if (candidate is List) {
-      return candidate.whereType<Map<String, dynamic>>().toList();
-    }
-
-    if (candidate is Map<String, dynamic>) {
-      final nestedCandidates = [
-        candidate['items'],
-        candidate['results'],
-        candidate['list'],
-        candidate['data'],
-      ];
-
-      for (final nested in nestedCandidates) {
-        if (nested is List) {
-          return nested.whereType<Map<String, dynamic>>().toList();
-        }
-      }
-    }
-
-    return <Map<String, dynamic>>[];
-  }
-
-  List<Map<String, dynamic>> _dedupeByIdentifier(
-    List<Map<String, dynamic>> items,
-  ) {
-    final seen = <String>{};
-    final uniqueItems = <Map<String, dynamic>>[];
-
-    for (final item in items) {
-      final dedupeKey = _extractIdentifier(item);
-      final fallbackKey = dedupeKey.isNotEmpty
-          ? dedupeKey
-          : [
-              _firstString(item, const ['currentMedication', 'currentName', 'name']),
-              _firstString(item, const ['recommendedMedication', 'recommendedName']),
-              _firstString(item, const ['action', 'status']),
-            ].join('|');
-
-      if (seen.add(fallbackKey)) {
-        uniqueItems.add(item);
-      }
-    }
-
-    return uniqueItems;
+    declinedMedications.clear();
+    totalEstimatedMonthlySavings.value = 0.0;
+    pdfUrl.value = '';
+    patientInfo.value = null;
   }
 
   String _resolvePatientId(dynamic arguments) {
@@ -393,95 +409,14 @@ class ReconciliationCompleteController extends GetxController {
 
     return '';
   }
-}
 
-class _SummaryParseResult {
-  final List<FinalMedicationItem> continuedMedications;
-  final List<ChangedMedicationItem> changedMedications;
-  final List<DiscontinuedMedicationItem> discontinuedMedications;
-  final String totalEstimatedMonthlySavings;
+  int get totalMedications =>
+      continuedMedications.length +
+      discontinuedMedications.length +
+      declinedMedications.length;
 
-  _SummaryParseResult({
-    required this.continuedMedications,
-    required this.changedMedications,
-    required this.discontinuedMedications,
-    required this.totalEstimatedMonthlySavings,
-  });
-}
-
-String _extractIdentifier(Map<String, dynamic> json) {
-  return _firstString(json, const [
-    '_id',
-    'comparisonId',
-    'id',
-    'medicationId._id',
-    'medicationId.id',
-    'itemId',
-  ]);
-}
-
-dynamic _readValue(dynamic value, String path) {
-  dynamic current = value;
-
-  for (final segment in path.split('.')) {
-    if (current is Map<String, dynamic> && current.containsKey(segment)) {
-      current = current[segment];
-      continue;
-    }
-
-    return null;
-  }
-
-  return current;
-}
-
-String _firstString(Map<String, dynamic> json, List<String> keys) {
-  for (final key in keys) {
-    final value = _readValue(json, key);
-    final text = value?.toString().trim() ?? '';
-    if (text.isNotEmpty) {
-      return text;
-    }
-  }
-
-  return '';
-}
-
-bool _parseBool(dynamic value) {
-  if (value is bool) {
-    return value;
-  }
-
-  final normalized = value?.toString().trim().toLowerCase() ?? '';
-  return normalized == 'true' ||
-      normalized == '1' ||
-      normalized == 'yes' ||
-      normalized == 'covered';
-}
-
-String _formatSavings(dynamic value) {
-  if (value == null) {
-    return '';
-  }
-
-  if (value is num) {
-    return '\$${value.toString()}';
-  }
-
-  final text = value.toString().trim();
-  if (text.isEmpty) {
-    return '';
-  }
-
-  if (text.startsWith(r'$')) {
-    return text;
-  }
-
-  return text;
-}
-
-extension _StringFormatExtension on String {
-  String let(String Function(dynamic value) formatter) {
-    return formatter(this);
+  String get savingsText {
+    if (totalEstimatedMonthlySavings.value <= 0) return '\$0';
+    return '\$${totalEstimatedMonthlySavings.value.toStringAsFixed(0)}';
   }
 }

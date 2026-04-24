@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import 'home_controller.dart';
 import '../patient_profile/pages/patient_profile_page.dart';
+import '../../data/models/activity_model.dart';
+import '../../routes/app_routes.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -186,27 +188,55 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 // Activity List
-                _buildActivityItem(
-                  'Margaret Thompson',
-                  'Reconciliation completed',
-                  '2 hours ago',
-                  'Done',
-                  const Color(0xFF10B981),
-                ),
-                _buildActivityItem(
-                  'Robert Chen',
-                  'Awaiting formulary review',
-                  '4 hours ago',
-                  'Pending',
-                  const Color(0xFFF59E0B),
-                ),
-                _buildActivityItem(
-                  'Sarah Williams',
-                  'Uploaded med list',
-                  '5 hours ago',
-                  'In Progress',
-                  const Color(0xFF3B82F6),
-                ),
+                Obx(() {
+                  if (homeController.isActivityLoading.value) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final activities = homeController.activityList;
+                  if (activities.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text(
+                          'No recent activities found',
+                          style: TextStyle(color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final displayList = activities.take(4).toList();
+                  
+                  return Column(
+                    children: [
+                      ...displayList.map((activity) => _buildActivityItem(activity)),
+                      if (activities.length > 4) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => Get.toNamed(AppRoutes.recentActivity),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Text(
+                                'See More',
+                                style: TextStyle(
+                                  color: Color(0xFF3B82F6),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward, size: 16, color: Color(0xFF3B82F6)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }),
                 const SizedBox(height: 24),
                 // Quick Actions Card
                 Container(
@@ -306,101 +336,71 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityItem(
-    String name,
-    String sub,
-    String time,
-    String status,
-    Color statusColor,
-  ) {
-    return GestureDetector(
-      onTap: () => Get.to(() => const PatientProfilePage()),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 0),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  name,
+  Widget _buildActivityItem(ActivityModel activity) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  activity.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1E293B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      if (status == 'Done')
-                        const Icon(
-                          Icons.check,
-                          size: 12,
-                          color: Color(0xFF10B981),
-                        ),
-                      if (status == 'Pending')
-                        const Icon(
-                          Icons.access_time,
-                          size: 12,
-                          color: Color(0xFFF59E0B),
-                        ),
-                      if (status == 'In Progress')
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF3B82F6),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      const SizedBox(width: 4),
-                      Text(
-                        status,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 12, color: Color(0xFF64748B)),
+                    const SizedBox(width: 4),
+                    Text(
+                      activity.timeAgo,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              sub,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              time,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            activity.action,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          ),
+        ],
       ),
     );
   }

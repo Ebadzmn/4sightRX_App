@@ -4,13 +4,19 @@ import '../../core/network/network_exception.dart';
 import '../../core/services/storage_service.dart';
 import '../../data/models/login_response.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../data/models/activity_model.dart';
+import '../../data/repositories/analytics_repository.dart';
 
 class HomeController extends GetxController {
   final RxBool isProfileLoading = false.obs;
   final Rxn<UserModel> userProfile = Rxn<UserModel>();
 
+  final RxList<ActivityModel> activityList = <ActivityModel>[].obs;
+  final RxBool isActivityLoading = false.obs;
+
   final AuthRepository _authRepository = AuthRepository();
   final StorageService _storageService = StorageService();
+  final AnalyticsRepository _analyticsRepository = AnalyticsRepository();
 
   @override
   void onInit() {
@@ -20,7 +26,10 @@ class HomeController extends GetxController {
 
   Future<void> _initializeProfile() async {
     await _loadCachedProfile();
-    await getProfile();
+    await Future.wait([
+      getProfile(),
+      fetchActivities(),
+    ]);
   }
 
   Future<void> _loadCachedProfile() async {
@@ -75,7 +84,26 @@ class HomeController extends GetxController {
   }
 
   Future<void> refreshProfile() async {
-    await getProfile();
+    await Future.wait([
+      getProfile(),
+      fetchActivities(),
+    ]);
+  }
+
+  Future<void> fetchActivities() async {
+    isActivityLoading.value = true;
+    try {
+      final activities = await _analyticsRepository.fetchRecentActivities();
+      activityList.assignAll(activities);
+    } catch (e) {
+      Get.snackbar(
+        'Activities',
+        'Failed to load activities',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isActivityLoading.value = false;
+    }
   }
 
   String _mapErrorMessage(NetworkException error) {

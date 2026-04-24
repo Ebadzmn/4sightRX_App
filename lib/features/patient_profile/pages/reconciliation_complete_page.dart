@@ -17,7 +17,7 @@ class ReconciliationCompletePage extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FB),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
-        currentIndex: 1, // Patients tab
+        currentIndex: 1,
         onTap: (index) {
           if (index == 1) return;
           final mainController = Get.put(MainController());
@@ -29,18 +29,9 @@ class ReconciliationCompletePage extends StatelessWidget {
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.group_outlined),
-            label: 'Patients',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.group_outlined), label: 'Patients'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
       appBar: AppBar(
@@ -50,11 +41,7 @@ class ReconciliationCompletePage extends StatelessWidget {
         centerTitle: false,
         title: const Text(
           'Reconciliation Complete',
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF64748B)),
@@ -66,18 +53,14 @@ class ReconciliationCompletePage extends StatelessWidget {
         ),
       ),
       body: Obx(() {
+        if (controller.isLoading.value) return _buildLoadingState();
+
         final hasError = controller.errorMessage.value.isNotEmpty &&
             controller.continuedMedications.isEmpty &&
-            controller.changedMedications.isEmpty &&
-            controller.discontinuedMedications.isEmpty;
+            controller.discontinuedMedications.isEmpty &&
+            controller.declinedMedications.isEmpty;
 
-        if (controller.isLoading.value) {
-          return _buildLoadingState();
-        }
-
-        if (hasError) {
-          return _buildErrorState(controller);
-        }
+        if (hasError) return _buildErrorState(controller);
 
         return SingleChildScrollView(
           child: Column(
@@ -93,107 +76,68 @@ class ReconciliationCompletePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Updated Medication List',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
+                    const Text('Updated Medication List',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Review final medication list before export',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                    ),
+                    const Text('Review final medication list before export',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+
+                    // ── Continued Medications ──
                     const SizedBox(height: 24),
-                    Text(
-                      'Continued Medications (${controller.continuedMedications.length})',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    _sectionTitle('Continued Medications', controller.continuedMedications.length,
+                        const Color(0xFF10B981)),
+                    const SizedBox(height: 12),
                     if (controller.continuedMedications.isEmpty)
-                      _buildEmptySectionMessage('No continued medications')
+                      _buildEmptyMessage('No continued medications')
                     else
-                      ...List.generate(
-                        controller.continuedMedications.length,
-                        (index) => _buildMedicationCard(
-                          controller.continuedMedications[index],
-                          index,
-                          controller,
-                        ),
+                      ...controller.continuedMedications.map(
+                        (item) => _buildMedicationCard(context, item, const Color(0xFFF0FDF4),
+                            const Color(0xFFDCFCE7), const Color(0xFF10B981), 'Continued'),
                       ),
+
+                    // ── Discontinued Medications ──
                     const SizedBox(height: 24),
-                    Text(
-                      'Changed Medications (${controller.changedMedications.length})',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (controller.changedMedications.isEmpty)
-                      _buildEmptySectionMessage('No changed medications')
-                    else
-                      ...List.generate(
-                        controller.changedMedications.length,
-                        (index) => _buildChangedMedicationCard(
-                          context,
-                          controller.changedMedications[index],
-                          index,
-                          controller,
-                        ),
-                      ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Discontinued/Deprescribed Medications (${controller.discontinuedMedications.length})',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    _sectionTitle('Discontinued Medications', controller.discontinuedMedications.length,
+                        const Color(0xFFF59E0B)),
+                    const SizedBox(height: 12),
                     if (controller.discontinuedMedications.isEmpty)
-                      _buildEmptySectionMessage('No discontinued medications')
+                      _buildEmptyMessage('No discontinued medications')
                     else
-                      ...List.generate(
-                        controller.discontinuedMedications.length,
-                        (index) => _buildDiscontinuedMedicationCard(
-                          controller.discontinuedMedications[index],
-                        ),
+                      ...controller.discontinuedMedications.map(
+                        (item) => _buildMedicationCard(context, item, const Color(0xFFFFFBEB),
+                            const Color(0xFFFDE68A), const Color(0xFFF59E0B), 'Discontinued'),
                       ),
+
+                    // ── Declined Medications ──
+                    const SizedBox(height: 24),
+                    _sectionTitle('Declined Medications', controller.declinedMedications.length,
+                        const Color(0xFFEF4444)),
+                    const SizedBox(height: 12),
+                    if (controller.declinedMedications.isEmpty)
+                      _buildEmptyMessage('No declined medications')
+                    else
+                      ...controller.declinedMedications.map(
+                        (item) => _buildMedicationCard(context, item, const Color(0xFFFEF2F2),
+                            const Color(0xFFFECACA), const Color(0xFFEF4444), 'Declined'),
+                      ),
+
                     const SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: () {
-                        Get.to(() => const ExportMedicationListPage());
-                      },
+                      onPressed: () => Get.to(() => const ExportMedicationListPage()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0C4A6E),
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Confirm Update Medication List',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: const Text('Confirm & Export Medication List',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(height: 32),
-                    _buildExportSection(),
+                    _buildExportSection(controller),
                     const SizedBox(height: 24),
-                    _buildReconciliationDetailsBox(),
+                    _buildPatientInfoBox(controller),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -205,7 +149,267 @@ class ReconciliationCompletePage extends StatelessWidget {
     );
   }
 
-  Widget _buildExportSection() {
+  // ── Section Title ──
+  Widget _sectionTitle(String title, int count, Color accentColor) {
+    return Row(
+      children: [
+        Container(width: 4, height: 20, decoration: BoxDecoration(
+          color: accentColor, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text('$title ($count)',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+      ],
+    );
+  }
+
+  // ── Medication Card ──
+  Widget _buildMedicationCard(BuildContext context, ReconciliationMedicationItem item,
+      Color bgColor, Color borderColor, Color accentColor, String badgeLabel) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row: medication name + badges
+          Row(
+            children: [
+              Expanded(
+                child: Text(item.currentMedication,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+              ),
+              const SizedBox(width: 8),
+              _badge(badgeLabel, accentColor.withValues(alpha: 0.15), accentColor),
+              if (item.actionDisplayLabel.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                _badge(item.actionDisplayLabel, _actionBg(item.actionDisplayLabel),
+                    _actionFg(item.actionDisplayLabel)),
+              ],
+            ],
+          ),
+
+          // Recommended medication
+          if (item.recommendedMedication.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(item.recommendedMedication,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF334155))),
+                ),
+              ],
+            ),
+          ],
+
+          // Rationale
+          if (item.rationale.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 14, color: Color(0xFF64748B)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(item.rationale,
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
+
+          // Bottom row: savings + hospice
+          Row(
+            children: [
+              if (item.savingsText.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text('Savings: ${item.savingsText}',
+                      style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.w500)),
+                ),
+              if (item.savingsText.isNotEmpty) const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: item.isHospiceCovered.value
+                      ? const Color(0xFFEFF6FF)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: item.isHospiceCovered.value
+                        ? const Color(0xFFBFDBFE)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      item.isHospiceCovered.value ? Icons.check_circle : Icons.cancel_outlined,
+                      size: 14,
+                      color: item.isHospiceCovered.value
+                          ? const Color(0xFF3B82F6)
+                          : const Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Hospice: ${item.hospiceLabel}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: item.isHospiceCovered.value
+                            ? const Color(0xFF1D4ED8)
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _badge(String label, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  // ── Success Banner ──
+  Widget _buildSuccessBanner(ReconciliationCompleteController controller) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 32),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Reconciliation\nComplete!',
+                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, height: 1.2)),
+                  SizedBox(height: 6),
+                  Text('Ready to update patient record',
+                      style: TextStyle(color: Colors.white70, fontSize: 14)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(height: 1, color: Colors.white24),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem('${controller.totalMedications}', 'Total Meds'),
+              _buildStatItem('${controller.continuedMedications.length}', 'Continued'),
+              _buildStatItem(controller.savingsText, 'Monthly Savings'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      ],
+    );
+  }
+
+  // ── Stepper ──
+  Widget _buildStepper() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _stepItem('Upload', true), _stepDivider(),
+          _stepItem('Review', true), _stepDivider(),
+          _stepItem('Formulary', true), _stepDivider(),
+          _stepItem('Finalize', true),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepItem(String title, bool done) {
+    return Column(
+      children: [
+        Container(
+          width: 24, height: 24,
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF0F62FE)),
+          child: const Icon(Icons.check, size: 14, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+      ],
+    );
+  }
+
+  Widget _stepDivider() {
+    return Expanded(
+      child: Container(height: 1.5, color: const Color(0xFF0F62FE), margin: const EdgeInsets.only(bottom: 24)),
+    );
+  }
+
+  // ── Export Section ──
+  Widget _buildExportSection(ReconciliationCompleteController controller) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -216,64 +420,75 @@ class ReconciliationCompletePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Export Medication List',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF475569),
-            ),
-          ),
+          const Text('Export Medication List',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF475569))),
           const SizedBox(height: 20),
-          Row(
+          Obx(() => Row(
             children: [
               _buildExportButton(
-                Icons.file_download_outlined,
-                'Export EMR',
-                true,
+                icon: Icons.file_download_outlined,
+                label: controller.isDownloading.value ? 'Downloading...' : 'Export EMR',
+                isPrimary: true,
+                isLoading: controller.isDownloading.value,
+                onTap: controller.isDownloading.value ? null : () => controller.downloadAndOpenPdf(),
               ),
               const SizedBox(width: 12),
-              _buildExportButton(Icons.copy_outlined, 'Copy Text', false),
-              const SizedBox(width: 12),
-              _buildExportButton(Icons.share_outlined, 'Share PDF', false),
+              _buildExportButton(
+                icon: Icons.share_outlined,
+                label: controller.isSharing.value ? 'Sharing...' : 'Share PDF',
+                isPrimary: false,
+                isLoading: controller.isSharing.value,
+                onTap: controller.isSharing.value ? null : () => controller.sharePdf(),
+              ),
             ],
-          ),
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildExportButton(IconData icon, String label, bool isPrimary) {
+  Widget _buildExportButton({
+    required IconData icon,
+    required String label,
+    required bool isPrimary,
+    bool isLoading = false,
+    VoidCallback? onTap,
+  }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isPrimary ? const Color(0xFF0C4A6E) : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isPrimary ? Colors.white : const Color(0xFF475569),
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isPrimary ? Colors.white : const Color(0xFF475569),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: isPrimary ? const Color(0xFF0C4A6E) : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              if (isLoading)
+                SizedBox(
+                  width: 24, height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: isPrimary ? Colors.white : const Color(0xFF475569),
+                  ),
+                )
+              else
+                Icon(icon, color: isPrimary ? Colors.white : const Color(0xFF475569), size: 24),
+              const SizedBox(height: 8),
+              Text(label,
+                  style: TextStyle(fontSize: 12, color: isPrimary ? Colors.white : const Color(0xFF475569),
+                      fontWeight: FontWeight.w500)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildReconciliationDetailsBox() {
+  // ── Patient Info Box ──
+  Widget _buildPatientInfoBox(ReconciliationCompleteController controller) {
+    final patient = controller.patientInfo.value;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -284,306 +499,47 @@ class ReconciliationCompletePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Reconciliation Details',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E40AF),
-            ),
-          ),
+          const Text('Patient Details',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF))),
           const SizedBox(height: 16),
-          _buildDetailRow('Reconciled by:', 'Dr. Sarah Johnson, PharmD'),
-          const SizedBox(height: 8),
-          _buildDetailRow('Date/Time:', 'Feb 6, 2026 at 2:45 PM'),
-          const SizedBox(height: 8),
-          _buildDetailRow('Patient:', 'Margaret Thompson (MRN-45678)'),
+          if (patient != null) ...[
+            _detailRow('Patient:', patient.fullName),
+            const SizedBox(height: 8),
+            _detailRow('MRN:', patient.mrn),
+            const SizedBox(height: 8),
+            _detailRow('DOB:', patient.dateOfBirth),
+            const SizedBox(height: 8),
+            _detailRow('Gender:', patient.gender),
+            const SizedBox(height: 8),
+            _detailRow('Phone:', patient.phoneNumber),
+            const SizedBox(height: 8),
+            _detailRow('Allergies:', patient.medicationAllergies),
+          ] else ...[
+            const Text('Patient information not available',
+                style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _detailRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF1E40AF)),
-          ),
-        ),
+        Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF1E40AF)))),
         const SizedBox(width: 12),
         Expanded(
           flex: 5,
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            softWrap: true,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1E40AF),
-            ),
-          ),
+          child: Text(value, textAlign: TextAlign.right, softWrap: true,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E40AF))),
         ),
       ],
     );
   }
 
-  Widget _buildChangedMedicationCard(
-    BuildContext context,
-    ChangedMedicationItem item,
-    int index,
-    ReconciliationCompleteController controller,
-  ) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F7FF), // Light blue
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDBEAFE)),
-      ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.52,
-                    ),
-                    child: Text(
-                      item.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      'Changed',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  if (item.actionDisplayLabel.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _actionBadgeBackground(item.actionDisplayLabel),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: _actionBadgeBorder(item.actionDisplayLabel),
-                        ),
-                      ),
-                      child: Text(
-                        item.actionDisplayLabel,
-                        style: TextStyle(
-                          color: _actionBadgeForeground(item.actionDisplayLabel),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.dosageInfo,
-                      softWrap: true,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      item.oldMedName,
-                      textAlign: TextAlign.right,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 13,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (item.frequency.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  item.frequency,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    const TextSpan(
-                      text: 'Covered: ',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                    ),
-                    TextSpan(
-                      text: item.hospiceLabel,
-                      style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => controller.toggleChangedHospice(index),
-                child: Row(
-                  children: [
-                    Obx(
-                      () => Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: item.isHospiceCovered.value
-                              ? const Color(0xFF0F62FE)
-                              : Colors.white,
-                          border: Border.all(
-                            color: item.isHospiceCovered.value
-                                ? const Color(0xFF0F62FE)
-                                : const Color(0xFF94A3B8),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: item.isHospiceCovered.value
-                            ? const Icon(
-                                Icons.check,
-                                size: 12,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Hospice covered',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const Positioned(
-            right: 0,
-            top: 2,
-            child: Icon(
-              Icons.verified_user_outlined,
-              color: Color(0xFF10B981),
-              size: 20,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiscontinuedMedicationCard(DiscontinuedMedicationItem item) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item.name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          if (item.dosage.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              item.dosage,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-            ),
-          ],
-          if (item.frequency.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              item.frequency,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              item.reason,
-              style: const TextStyle(
-                color: Color(0xFFB91C1C),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptySectionMessage(String message) {
+  // ── Helper widgets ──
+  Widget _buildEmptyMessage(String message) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -593,13 +549,7 @@ class ReconciliationCompletePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: Color(0xFF64748B),
-          fontSize: 14,
-        ),
-      ),
+      child: Text(message, style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
     );
   }
 
@@ -610,20 +560,10 @@ class ReconciliationCompletePage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(strokeWidth: 3),
-            ),
+            SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3)),
             SizedBox(height: 16),
-            Text(
-              'Loading reconciliation summary...',
-              style: TextStyle(
-                color: Color(0xFF1E293B),
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text('Loading reconciliation summary...',
+                style: TextStyle(color: Color(0xFF1E293B), fontSize: 15, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -652,11 +592,7 @@ class ReconciliationCompletePage extends StatelessWidget {
                     ? controller.errorMessage.value
                     : 'Failed to load reconciliation summary',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(color: Color(0xFF1E293B), fontSize: 15, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -665,9 +601,7 @@ class ReconciliationCompletePage extends StatelessWidget {
                   backgroundColor: const Color(0xFF0C4A6E),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text('Retry'),
               ),
@@ -678,297 +612,22 @@ class ReconciliationCompletePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStepper() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildStepItem('Upload', true),
-          _buildStepDivider(),
-          _buildStepItem('Review', true),
-          _buildStepDivider(),
-          _buildStepItem('Formulary', true),
-          _buildStepDivider(),
-          _buildStepItem('Finalize', true),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepItem(String title, bool isCompleted) {
-    return Column(
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF0F62FE),
-            border: Border.all(color: const Color(0xFF0F62FE), width: 1.5),
-          ),
-          child: const Icon(Icons.check, size: 14, color: Colors.white),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF94A3B8),
-            fontWeight: FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepDivider() {
-    return Expanded(
-      child: Container(
-        height: 1.5,
-        color: const Color(0xFF0F62FE),
-        margin: const EdgeInsets.only(bottom: 24),
-      ),
-    );
-  }
-
-  Widget _buildSuccessBanner(ReconciliationCompleteController controller) {
-    final activeCount =
-        controller.continuedMedications.length + controller.changedMedications.length;
-    final changesCount = controller.changedMedications.length;
-    final savingsValue =
-        controller.totalSavings.value.isNotEmpty ? controller.totalSavings.value : '\$0';
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF38B6FF), Color(0xFF0C3064)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Reconciliation\nComplete!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Ready to update patient record',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Container(height: 1, color: Colors.white24),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStatItem('$activeCount', 'Active Meds'),
-              _buildStatItem('$changesCount', 'Changes'),
-              _buildStatItem(savingsValue, 'Monthly Savings'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMedicationCard(
-    FinalMedicationItem item,
-    int index,
-    ReconciliationCompleteController controller,
-  ) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4), // Very light green
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDCFCE7)),
-      ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              if (item.dosage.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  item.dosage,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                ),
-              ],
-              if (item.frequency.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  item.frequency,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                ),
-              ],
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => controller.toggleContinuedHospice(index),
-                child: Row(
-                  children: [
-                    Obx(
-                      () => Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: item.isHospiceCovered.value
-                              ? const Color(0xFF0F62FE)
-                              : Colors.white,
-                          border: Border.all(
-                            color: item.isHospiceCovered.value
-                                ? const Color(0xFF0F62FE)
-                                : const Color(0xFF94A3B8),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: item.isHospiceCovered.value
-                            ? const Icon(
-                                Icons.check,
-                                size: 12,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Obx(
-                      () => Text(
-                        item.isHospiceCovered.value ? 'Yes' : 'No',
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const Positioned(
-            right: 0,
-            top: 0,
-            child: Icon(
-              Icons.verified_user_outlined,
-              color: Color(0xFF10B981),
-              size: 20,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _actionBadgeBackground(String actionLabel) {
-    switch (actionLabel.toLowerCase()) {
-      case 'accepted':
-        return const Color(0xFFEFF6FF);
-      case 'declined':
-        return const Color(0xFFFEF2F2);
-      case 'd/c':
-        return const Color(0xFFFFF7ED);
-      default:
-        return const Color(0xFFF8FAFC);
+  // ── Action badge colors ──
+  Color _actionBg(String label) {
+    switch (label.toLowerCase()) {
+      case 'accepted': return const Color(0xFFEFF6FF);
+      case 'declined': return const Color(0xFFFEF2F2);
+      case 'd/c': return const Color(0xFFFFF7ED);
+      default: return const Color(0xFFF8FAFC);
     }
   }
 
-  Color _actionBadgeBorder(String actionLabel) {
-    switch (actionLabel.toLowerCase()) {
-      case 'accepted':
-        return const Color(0xFFBFDBFE);
-      case 'declined':
-        return const Color(0xFFFECACA);
-      case 'd/c':
-        return const Color(0xFFFED7AA);
-      default:
-        return const Color(0xFFE2E8F0);
-    }
-  }
-
-  Color _actionBadgeForeground(String actionLabel) {
-    switch (actionLabel.toLowerCase()) {
-      case 'accepted':
-        return const Color(0xFF1D4ED8);
-      case 'declined':
-        return const Color(0xFFB91C1C);
-      case 'd/c':
-        return const Color(0xFFB45309);
-      default:
-        return const Color(0xFF475569);
+  Color _actionFg(String label) {
+    switch (label.toLowerCase()) {
+      case 'accepted': return const Color(0xFF1D4ED8);
+      case 'declined': return const Color(0xFFB91C1C);
+      case 'd/c': return const Color(0xFFB45309);
+      default: return const Color(0xFF475569);
     }
   }
 }

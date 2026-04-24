@@ -9,6 +9,7 @@ class ApiEndpoints {
   static const String patients = '/patients';
   static const String medications = '/medications';
   static const String medicationsBulk = '/medications/bulk';
+  static const String recentActivities = '/analytics/recent-activities';
   static const String extractMedicationText = '/medications/extract-text';
   static const String formularyComparisonAnalyze =
       '/formulary-comparison/analyze';
