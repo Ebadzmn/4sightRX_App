@@ -336,6 +336,9 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _showSignOutBottomSheet(ProfileController controller) {
+    final homeController = Get.find<HomeController>();
+    final profile = homeController.userProfile.value;
+
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
@@ -445,40 +448,40 @@ class ProfilePage extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF3B82F6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'SJ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    backgroundImage:
+                        profile != null && profile.resolvedImagePath.isNotEmpty
+                        ? NetworkImage(profile.resolvedImagePath)
+                        : null,
+                    child: profile != null && profile.resolvedImagePath.isEmpty
+                        ? Text(
+                            _buildInitials(profile.name),
+                            style: const TextStyle(
+                              color: Color(0xFF1E293B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Dr. Sarah Johnson',
-                          style: TextStyle(
+                          profile?.name ?? 'Profile User',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF1E293B),
                           ),
                         ),
                         Text(
-                          'PharmD, Clinical Pharmacist',
-                          style: TextStyle(
+                          profile?.role ?? 'User',
+                          style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF64748B),
                           ),

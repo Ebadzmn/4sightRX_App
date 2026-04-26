@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'home_controller.dart';
+import '../main/main_controller.dart';
 import '../patient_profile/pages/patient_profile_page.dart';
 import '../../data/models/activity_model.dart';
 import '../../routes/app_routes.dart';
@@ -12,6 +13,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeController = Get.find<HomeController>();
+    final mainController = Get.find<MainController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F7),
@@ -96,7 +98,7 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () => mainController.changeTabIndex(1),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white.withOpacity(0.2),
                             foregroundColor: Colors.white,
@@ -158,6 +160,8 @@ class HomePage extends StatelessWidget {
                     ],
                   ),
                   child: TextField(
+                    readOnly: true,
+                    onTap: () => mainController.changeTabIndex(1),
                     decoration: InputDecoration(
                       hintText: 'Search patients...',
                       hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
@@ -269,12 +273,14 @@ class HomePage extends StatelessWidget {
                         'Start New Reconciliation',
                         const Color(0xFFF0F7FF),
                         const Color(0xFF2196F3),
+                        onTap: () => mainController.changeTabIndex(1),
                       ),
                       const SizedBox(height: 12),
                       _buildActionItem(
                         'View All Patients',
                         const Color(0xFFF8F9FB),
                         const Color(0xFF475569),
+                        onTap: () => mainController.changeTabIndex(1),
                       ),
                     ],
                   ),
@@ -405,21 +411,30 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionItem(String title, Color bgColor, Color textColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w500,
-          fontSize: 16,
-          letterSpacing: 0.2,
+  Widget _buildActionItem(
+    String title,
+    Color bgColor,
+    Color textColor, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            letterSpacing: 0.2,
+          ),
         ),
       ),
     );

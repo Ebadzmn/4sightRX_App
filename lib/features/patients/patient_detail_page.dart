@@ -260,43 +260,43 @@ class PatientDetailPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: () {
-                        Get.to(() => const AddMedicationPage());
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(20),
-                        minimumSize: const Size(double.infinity, 60),
-                        side: const BorderSide(
-                          color: Color(0xFFE2E8F0),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        backgroundColor: Colors.white,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.description_outlined,
-                            color: Color(0xFF364153),
-                            size: 20,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            'Enter Medications Manually',
-                            style: TextStyle(
-                              color: Color(0xFF364153),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    // OutlinedButton(
+                    //   onPressed: () {
+                    //     Get.to(() => const AddMedicationPage());
+                    //   },
+                    //   style: OutlinedButton.styleFrom(
+                    //     padding: const EdgeInsets.all(20),
+                    //     minimumSize: const Size(double.infinity, 60),
+                    //     side: const BorderSide(
+                    //       color: Color(0xFFE2E8F0),
+                    //       width: 2,
+                    //     ),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(16),
+                    //     ),
+                    //     backgroundColor: Colors.white,
+                    //   ),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.center,
+                    //     children: const [
+                    //       Icon(
+                    //         Icons.description_outlined,
+                    //         color: Color(0xFF364153),
+                    //         size: 20,
+                    //       ),
+                    //       SizedBox(width: 12),
+                    //       // Text(
+                    //       //   'Enter Medications Manually',
+                    //       //   style: TextStyle(
+                    //       //     color: Color(0xFF364153),
+                    //       //     fontSize: 15,
+                    //       //     fontWeight: FontWeight.w500,
+                    //       //   ),
+                    //       // ),
+                    //     ],
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 32),
                     Row(
                       children: const [
                         Icon(
