@@ -83,7 +83,12 @@ class ReviewMedicationPage extends StatelessWidget {
             // Add Missing Medication Button
             OutlinedButton(
               onPressed: () {
-                Get.to(() => const AddMedicationPage());
+                Get.to(
+                  () => AddMedicationPage(
+                    patientId: controller.patientId.value,
+                    medicationOcrController: controller,
+                  ),
+                );
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

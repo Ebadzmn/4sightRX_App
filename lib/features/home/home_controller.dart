@@ -5,6 +5,7 @@ import '../../core/services/storage_service.dart';
 import '../../data/models/login_response.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/models/activity_model.dart';
+import '../../data/models/home_stats_model.dart';
 import '../../data/repositories/analytics_repository.dart';
 
 class HomeController extends GetxController {
@@ -13,6 +14,9 @@ class HomeController extends GetxController {
 
   final RxList<ActivityModel> activityList = <ActivityModel>[].obs;
   final RxBool isActivityLoading = false.obs;
+
+  final Rxn<HomeStatsModel> homeStats = Rxn<HomeStatsModel>();
+  final RxBool isStatsLoading = false.obs;
 
   final AuthRepository _authRepository = AuthRepository();
   final StorageService _storageService = StorageService();
@@ -29,6 +33,7 @@ class HomeController extends GetxController {
     await Future.wait([
       getProfile(),
       fetchActivities(),
+      fetchStats(),
     ]);
   }
 
@@ -87,6 +92,7 @@ class HomeController extends GetxController {
     await Future.wait([
       getProfile(),
       fetchActivities(),
+      fetchStats(),
     ]);
   }
 
@@ -103,6 +109,18 @@ class HomeController extends GetxController {
       );
     } finally {
       isActivityLoading.value = false;
+    }
+  }
+
+  Future<void> fetchStats() async {
+    isStatsLoading.value = true;
+    try {
+      final stats = await _analyticsRepository.fetchStats();
+      homeStats.value = stats;
+    } catch (e) {
+      // Silently fail or log
+    } finally {
+      isStatsLoading.value = false;
     }
   }
 

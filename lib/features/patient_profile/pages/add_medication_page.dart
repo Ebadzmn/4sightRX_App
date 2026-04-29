@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/add_medication_controller.dart';
+import '../controllers/medication_ocr_controller.dart';
+import 'review_medication_page.dart';
 
 class AddMedicationPage extends StatelessWidget {
-  const AddMedicationPage({super.key});
+  final bool navigateToReviewOnSave;
+  final String patientId;
+  final MedicationOcrController? medicationOcrController;
+
+  const AddMedicationPage({
+    super.key,
+    this.navigateToReviewOnSave = false,
+    this.patientId = '',
+    this.medicationOcrController,
+  });
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(AddMedicationController());
+    final MedicationOcrController resolvedMedicationController =
+        medicationOcrController ??
+        (Get.isRegistered<MedicationOcrController>()
+            ? Get.find<MedicationOcrController>()
+            : Get.put(MedicationOcrController()));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -149,7 +165,18 @@ class AddMedicationPage extends StatelessWidget {
                   () => ElevatedButton(
                     onPressed: controller.isSaving.value
                         ? null
-                        : controller.saveMedication,
+                        : () async {
+                            final isSaved = await controller.saveMedication(
+                              closeOnSave: !navigateToReviewOnSave,
+                              patientId: patientId,
+                              medicationOcrController:
+                                  resolvedMedicationController,
+                            );
+
+                            if (isSaved && navigateToReviewOnSave) {
+                              Get.off(() => const ReviewMedicationPage());
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0C4A6E),
                       foregroundColor: Colors.white,

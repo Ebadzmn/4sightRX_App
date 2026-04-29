@@ -204,7 +204,12 @@ class PatientProfilePage extends StatelessWidget {
                   const SizedBox(height: 16),
                   OutlinedButton(
                     onPressed: () {
-                      Get.to(() => const AddMedicationPage());
+                      Get.to(
+                        () => AddMedicationPage(
+                          navigateToReviewOnSave: true,
+                          patientId: controller.patientID.value,
+                        ),
+                      );
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.all(20),

@@ -5,6 +5,7 @@ import 'home_controller.dart';
 import '../main/main_controller.dart';
 import '../patient_profile/pages/patient_profile_page.dart';
 import '../../data/models/activity_model.dart';
+import '../../data/models/home_stats_model.dart';
 import '../../routes/app_routes.dart';
 
 class HomePage extends StatelessWidget {
@@ -120,30 +121,33 @@ class HomePage extends StatelessWidget {
                 }),
                 const SizedBox(height: 24),
                 // Stats Row
-                Row(
-                  children: [
-                    _buildStatCard(
-                      '24',
-                      'Active Patients',
-                      Icons.people_outline,
-                      const Color(0xFF3B82F6),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatCard(
-                      '16',
-                      'Completed',
-                      Icons.check_circle_outline,
-                      const Color(0xFF10B981),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatCard(
-                      '\$8.4K',
-                      'Monthly Savings',
-                      Icons.trending_up,
-                      const Color(0xFF10B981),
-                    ),
-                  ],
-                ),
+                Obx(() {
+                  final stats = homeController.homeStats.value;
+                  return Row(
+                    children: [
+                      _buildStatCard(
+                        stats?.activePatients.toString() ?? '0',
+                        'Active Patients',
+                        Icons.people_outline,
+                        const Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildStatCard(
+                        stats?.completedReconciliations.toString() ?? '0',
+                        'Completed',
+                        Icons.check_circle_outline,
+                        const Color(0xFF10B981),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildStatCard(
+                        stats?.monthlySavings ?? '\$0',
+                        'Monthly Savings',
+                        Icons.trending_up,
+                        const Color(0xFF10B981),
+                      ),
+                    ],
+                  );
+                }),
                 const SizedBox(height: 24),
                 // Search Bar
                 Container(

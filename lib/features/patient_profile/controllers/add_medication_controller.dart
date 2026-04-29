@@ -61,9 +61,13 @@ class AddMedicationController extends GetxController {
     super.onClose();
   }
 
-  Future<void> saveMedication() async {
+  Future<bool> saveMedication({
+    bool closeOnSave = true,
+    String patientId = '',
+    required MedicationOcrController medicationOcrController,
+  }) async {
     if (isSaving.value) {
-      return;
+      return false;
     }
 
     isSaving.value = true;
@@ -82,26 +86,30 @@ class AddMedicationController extends GetxController {
         additionalInstructions: instructionsController.text.trim(),
       );
 
-      final medicationOcrController =
-          Get.isRegistered<MedicationOcrController>()
-          ? Get.find<MedicationOcrController>()
-          : Get.put(MedicationOcrController());
+      final trimmedPatientId = patientId.trim();
+      if (trimmedPatientId.isNotEmpty &&
+          medicationOcrController.patientId.value != trimmedPatientId) {
+        medicationOcrController.configureForPatient(trimmedPatientId);
+      }
 
       medicationOcrController.appendMedication(medication);
-      isSaving.value = false;
-      Get.back();
+      _clearFields();
+      if (closeOnSave) {
+        Get.back();
+      }
       Get.snackbar(
         'Success',
         'Medication added successfully',
         snackPosition: SnackPosition.BOTTOM,
       );
-      _clearFields();
+      return true;
     } catch (_) {
       Get.snackbar(
         'Failed to add medication',
         'Failed to add medication',
         snackPosition: SnackPosition.BOTTOM,
       );
+      return false;
     } finally {
       isSaving.value = false;
     }
