@@ -1,4 +1,4 @@
-package com.example.foursightrx
+package com.foursightrx.app
 
 import io.flutter.embedding.android.FlutterActivity
 

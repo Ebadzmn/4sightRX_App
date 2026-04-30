@@ -5,6 +5,7 @@ import '../../home/home_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../edit_profile_page.dart';
 import 'change_password_page.dart';
+import 'privacy_policy_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -64,6 +65,8 @@ class ProfilePage extends StatelessWidget {
                 _buildAccountCard(controller),
                 const SizedBox(height: 24),
                 _buildSignOutCard(controller),
+                const SizedBox(height: 16),
+                _buildDeleteAccountCard(controller),
                 const SizedBox(height: 32),
               ],
             ),
@@ -264,6 +267,14 @@ class ProfilePage extends StatelessWidget {
             title: 'Change Password',
             onTap: () {
               Get.to(() => const ChangePasswordPage());
+            },
+            isLast: false,
+          ),
+          _buildActionItem(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Privacy Policy',
+            onTap: () {
+              Get.to(() => const PrivacyPolicyPage());
             },
             isLast: true,
           ),
@@ -538,6 +549,202 @@ class ProfilePage extends StatelessWidget {
                         SizedBox(width: 8),
                         Text(
                           'Sign Out',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Widget _buildDeleteAccountCard(ProfileController controller) {
+    return GestureDetector(
+      onTap: () => _showDeleteAccountBottomSheet(controller),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEF4444)),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 22),
+            SizedBox(width: 12),
+            Text(
+              'Delete Account',
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountBottomSheet(ProfileController controller) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Delete Account',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Are you sure you want to delete your account?',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Get.back(),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFF94A3B8),
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFEE2E2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'This action cannot be undone.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFB91C1C),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'All your data will be permanently removed from 4sightRX.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF991B1B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Get.back(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      foregroundColor: const Color(0xFF475569),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await controller.logout();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.delete_outline, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Yes, Delete',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
