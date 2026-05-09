@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
                         Image.asset('assets/images/spLogo.png', width: 200),
                         const SizedBox(height: 10),
                         const Text(
-                          'Medication Management System',
+                          'Formulary Management Solution',
                           style: TextStyle(
                             color: Color(0xFF677788),
                             fontSize: 16,
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 40),
                   _buildTextField(
                     label: 'Email',
-                    hint: 'nurse@hospital.com',
+                    hint: 'name@email.com',
                     prefixIcon: Icons.email_outlined,
                     controller: controller.emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -130,12 +130,13 @@ class _LoginPageState extends State<LoginPage> {
                       height: 55,
                       child: ElevatedButton(
                         onPressed: controller.isLoading.value
-                          ? null
-                          : () => controller.login(_formKey),
+                            ? null
+                            : () => controller.login(_formKey),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D477D),
-                          disabledBackgroundColor: const Color(0xFF0D477D)
-                              .withOpacity(0.55),
+                          disabledBackgroundColor: const Color(
+                            0xFF0D477D,
+                          ).withValues(alpha: 0.55),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

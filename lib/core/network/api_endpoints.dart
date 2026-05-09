@@ -4,6 +4,7 @@ class ApiEndpoints {
   static const String baseUrl = AppConstants.baseUrl;
   static const String login = '/auth/login';
   static const String signUp = '/user';
+  static const String organizations = '/organizations';
   static const String profile = '/user/profile';
   static const String updateProfile = '/user/profile';
   static const String patients = '/patients';
@@ -19,6 +20,7 @@ class ApiEndpoints {
   static String formularyComparisonAction(String comparisonId) {
     return '/formulary-comparison/$comparisonId/action';
   }
+
   static String patientDetail(String patientId) {
     return '$patients/${Uri.encodeComponent(patientId)}';
   }

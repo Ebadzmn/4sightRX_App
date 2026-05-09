@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'signup_controller.dart';
 import '../../../routes/app_routes.dart';
+import 'signup_controller.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -21,6 +21,8 @@ class _SignupPageState extends State<SignupPage> {
     controller = Get.isRegistered<SignupController>()
         ? Get.find<SignupController>()
         : Get.put(SignupController(), permanent: true);
+    controller.resetForm();
+    controller.fetchOrganizations();
   }
 
   @override
@@ -30,12 +32,15 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            padding: EdgeInsets.fromLTRB(24.0, 0, 24.0, bottomInset + 24.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -58,21 +63,36 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 40),
                   _buildTextField(
-                    label: 'Name',
-                    hint: 'John Doe',
-                    controller: controller.nameController,
+                    label: 'First Name',
+                    hint: 'John',
+                    controller: controller.firstNameController,
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) {
-                        return 'Name is required';
+                        return 'First Name is required';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   _buildTextField(
+                    label: 'Last Name',
+                    hint: 'Doe',
+                    controller: controller.lastNameController,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Last Name is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _buildOrganizationField(),
+                  const SizedBox(height: 20),
+                  _buildTextField(
                     label: 'Email',
-                    hint: 'nurse@hospital.com',
+                    hint: 'name@email.com',
                     controller: controller.emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -121,6 +141,38 @@ class _SignupPageState extends State<SignupPage> {
                       isPassword: true,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  Obx(
+                    () => _buildTextField(
+                      label: 'Confirm Password',
+                      hint: 'Confirm your password',
+                      controller: controller.confirmPasswordController,
+                      validator: (value) {
+                        final text = value ?? '';
+                        if (text.isEmpty) {
+                          return 'Confirm Password is required';
+                        }
+                        if (text != controller.passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                      obscureText: !controller.isConfirmPasswordVisible.value,
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          controller.isConfirmPasswordVisible.value =
+                              !controller.isConfirmPasswordVisible.value;
+                        },
+                        icon: Icon(
+                          controller.isConfirmPasswordVisible.value
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                      isPassword: true,
+                    ),
+                  ),
                   const SizedBox(height: 30),
                   Obx(
                     () => SizedBox(
@@ -128,12 +180,13 @@ class _SignupPageState extends State<SignupPage> {
                       height: 55,
                       child: ElevatedButton(
                         onPressed: controller.isLoading.value
-                          ? null
-                          : () => controller.signUp(_formKey),
+                            ? null
+                            : () => controller.signUp(_formKey),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D477D),
-                          disabledBackgroundColor: const Color(0xFF0D477D)
-                              .withOpacity(0.55),
+                          disabledBackgroundColor: const Color(
+                            0xFF0D477D,
+                          ).withValues(alpha: 0.55),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -187,6 +240,162 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  Widget _buildOrganizationField() {
+    return Obx(() {
+      final status = controller.organizationLoadStatus.value;
+      final organizations = controller.organizations;
+
+      if (status == OrganizationLoadStatus.loading) {
+        return _buildStatusField(
+          child: Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Loading organizations...',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (status == OrganizationLoadStatus.error) {
+        return _buildStatusField(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Unable to load organizations',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                ),
+              ),
+              TextButton(
+                onPressed: () => controller.fetchOrganizations(force: true),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (status == OrganizationLoadStatus.empty || organizations.isEmpty) {
+        return _buildStatusField(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'No organizations available',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                ),
+              ),
+              TextButton(
+                onPressed: () => controller.fetchOrganizations(force: true),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: const TextSpan(
+              text: 'Organization ID',
+              style: TextStyle(
+                color: Color(0xFF677788),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                TextSpan(
+                  text: '*',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: controller.selectedOrganizationId.value.isEmpty
+                ? null
+                : controller.selectedOrganizationId.value,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Organization ID is required';
+              }
+              return null;
+            },
+            onChanged: (value) {
+              controller.selectedOrganizationId.value = value ?? '';
+            },
+            dropdownColor: Colors.white,
+            icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400),
+            isExpanded: true,
+            decoration: _inputDecoration(hint: 'Select organization'),
+            items: organizations
+                .map(
+                  (organization) => DropdownMenuItem<String>(
+                    value: organization.id,
+                    child: Text(
+                      organization.name,
+                      style: const TextStyle(color: Colors.black, fontSize: 14),
+                    ),
+                  ),
+                )
+                .toList(),
+            style: const TextStyle(color: Colors.black),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildStatusField({required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'Organization ID',
+            style: TextStyle(
+              color: Color(0xFF677788),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            children: [
+              TextSpan(
+                text: '*',
+                style: TextStyle(color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: child,
+        ),
+      ],
+    );
+  }
+
   Widget _buildTextField({
     required String label,
     required String hint,
@@ -214,38 +423,39 @@ class _SignupPageState extends State<SignupPage> {
           validator: validator,
           keyboardType: keyboardType,
           obscureText: obscureText || isPassword,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            isDense: false,
-            filled: true,
-            fillColor: Colors.white,
-            focusColor: Colors.white,
-            hoverColor: Colors.white,
-            counterText: '',
-            alignLabelWithHint: false,
-            suffixIcon: suffixIcon,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-              borderSide: BorderSide(color: Color(0xFF0D477D)),
-            ),
-          ),
+          decoration: _inputDecoration(hint: hint, suffixIcon: suffixIcon),
           style: const TextStyle(color: Colors.black),
           cursorColor: const Color(0xFF0D477D),
         ),
       ],
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint, Widget? suffixIcon}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade400),
+      isDense: false,
+      filled: true,
+      fillColor: Colors.white,
+      focusColor: Colors.white,
+      hoverColor: Colors.white,
+      counterText: '',
+      alignLabelWithHint: false,
+      suffixIcon: suffixIcon,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        borderSide: BorderSide(color: Color(0xFF0D477D)),
+      ),
     );
   }
 }

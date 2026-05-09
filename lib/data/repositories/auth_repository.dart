@@ -7,6 +7,7 @@ import '../../core/network/api_endpoints.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/services/storage_service.dart';
 import '../models/login_response.dart';
+import '../models/sign_up_request.dart';
 
 class AuthRepository {
   AuthRepository({ApiClient? apiClient, StorageService? storageService})
@@ -59,14 +60,10 @@ class AuthRepository {
     return loginResponse;
   }
 
-  Future<void> signUp({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signUp({required SignUpRequest request}) async {
     final response = await _apiClient.post(
       ApiEndpoints.signUp,
-      body: {'name': name, 'email': email, 'password': password},
+      body: request.toJson(),
     );
 
     final responseData = response.data;
@@ -89,9 +86,18 @@ class AuthRepository {
     }
 
     if (data is Map<String, dynamic>) {
+      final name = data['name']?.toString() ?? '';
+      final firstName = data['firstName']?.toString() ?? '';
+      final lastName = data['lastName']?.toString() ?? '';
+      final resolvedName = name.isNotEmpty
+          ? name
+          : [firstName, lastName]
+              .where((part) => part.trim().isNotEmpty)
+              .join(' ');
+
       await _storageService.saveUserData(
         userId: data['_id'] as String? ?? '',
-        userName: data['name'] as String? ?? '',
+        userName: resolvedName,
         userEmail: data['email'] as String? ?? '',
         userRole: data['role'] as String? ?? '',
         userImage: data['image'] as String? ?? '',
