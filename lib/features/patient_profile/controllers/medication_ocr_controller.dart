@@ -61,22 +61,24 @@ class MedicationOcrController extends GetxController {
     medicationList.clear();
   }
 
-  Future<void> pickImageFromGallery() async {
+  Future<bool> pickImageFromGallery() async {
     final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (picked == null) {
-      return;
+      return false;
     }
 
     setSelectedFile(File(picked.path), fileType: 'Image');
+    return true;
   }
 
-  Future<void> captureImageFromCamera() async {
+  Future<bool> captureImageFromCamera() async {
     final picked = await _imagePicker.pickImage(source: ImageSource.camera);
     if (picked == null) {
-      return;
+      return false;
     }
 
     setSelectedFile(File(picked.path), fileType: 'Image');
+    return true;
   }
 
   Future<void> pickPdfDocument() async {

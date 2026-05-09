@@ -58,140 +58,222 @@ class TakePhotoPage extends StatelessWidget {
               width: double.infinity,
               margin: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                color: const Color(0xFF162032), // Dark slate/navy color
-                borderRadius: BorderRadius.circular(16),
+                color: const Color(0xFF162032),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              child: Column(
+              clipBehavior: Clip.antiAlias,
+              child: Obx(() {
+                if (controller.hasSelectedFile) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.file(
+                        controller.selectedFile.value!,
+                        fit: BoxFit.cover,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.3),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Position medication list within frame',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          bottom: 24,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.5),
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white.withOpacity(0.2),
+                            size: 64,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Obx(() {
+            if (!controller.hasSelectedFile) {
+              return Column(
                 children: [
-                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () async {
+                      await controller.captureImageFromCamera();
+                    },
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0C3064),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0C3064).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   const Text(
-                    'Position medication list within frame',
+                    'Tap to capture',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF64748B),
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        bottom: 24,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
-                          width: 1.0,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await controller.pickImageFromGallery();
+                    },
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('Pick from Gallery'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Column(
-            children: [
-              GestureDetector(
-                onTap: () async {
-                  await controller.captureImageFromCamera();
-                },
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0C3064),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Tap to capture',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextButton.icon(
-                onPressed: () async {
-                  await controller.pickImageFromGallery();
-                },
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Pick from Gallery'),
-              ),
-              Obx(() {
-                if (!controller.hasSelectedFile) {
-                  if (controller.errorMessage.value.isNotEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                      child: _buildErrorBanner(controller.errorMessage.value),
-                    );
-                  }
+              );
+            }
 
-                  return const SizedBox.shrink();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                  child: Column(
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      _buildFilePreview(controller),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : () {
-                                Get.to(() => const DocumentProcessingPage());
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF38B6FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          minimumSize: const Size(double.infinity, 56),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Extract Medications',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await controller.captureImageFromCamera();
+                          },
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Retake'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
-                      if (controller.errorMessage.value.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _buildErrorBanner(controller.errorMessage.value),
-                      ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await controller.pickImageFromGallery();
+                          },
+                          icon: const Icon(Icons.photo_library_outlined, size: 18),
+                          label: const Text('Gallery'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                );
-              }),
-            ],
-          ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () {
+                            Get.to(() => const DocumentProcessingPage());
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF38B6FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      minimumSize: const Size(double.infinity, 56),
+                      elevation: 4,
+                      shadowColor: const Color(0xFF38B6FF).withOpacity(0.4),
+                    ),
+                    child: controller.isLoading.value
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Extract Medications',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                  if (controller.errorMessage.value.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildErrorBanner(controller.errorMessage.value),
+                  ],
+                ],
+              ),
+            );
+          }),
           const SizedBox(height: 48), // Bottom padding
         ],
       ),

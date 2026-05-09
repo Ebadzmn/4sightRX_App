@@ -5,6 +5,7 @@ import '../../data/models/patient_model.dart';
 import '../../data/repositories/patient_repository.dart';
 import '../patient_profile/pages/take_photo_page.dart';
 import '../patient_profile/pages/upload_medication_list_page.dart';
+import '../patient_profile/controllers/medication_ocr_controller.dart';
 
 class PatientDetailController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -120,18 +121,28 @@ class PatientDetailController extends GetxController {
     return _formatDateTime(patient.value?.updatedAt ?? '');
   }
 
-  void uploadFile() {
-    Get.to(
-      () => const UploadMedicationListPage(),
-      arguments: {'patientId': patientId},
-    );
+  void uploadFile() async {
+    final ocrController = Get.put(MedicationOcrController());
+    ocrController.configureForPatient(patientId);
+    final success = await ocrController.pickImageFromGallery();
+    if (success) {
+      Get.to(
+        () => const TakePhotoPage(),
+        arguments: {'patientId': patientId},
+      );
+    }
   }
 
-  void takePhoto() {
-    Get.to(
-      () => const TakePhotoPage(),
-      arguments: {'patientId': patientId},
-    );
+  void takePhoto() async {
+    final ocrController = Get.put(MedicationOcrController());
+    ocrController.configureForPatient(patientId);
+    final success = await ocrController.captureImageFromCamera();
+    if (success) {
+      Get.to(
+        () => const TakePhotoPage(),
+        arguments: {'patientId': patientId},
+      );
+    }
   }
 
   String _extractPatientId(dynamic arguments) {
