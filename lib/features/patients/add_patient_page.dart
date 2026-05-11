@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'add_patient_controller.dart';
+import '../../data/models/allergy_model.dart';
 
 class AddPatientPage extends StatelessWidget {
   const AddPatientPage({super.key});
@@ -8,6 +9,7 @@ class AddPatientPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AddPatientController controller = Get.put(AddPatientController());
+    final ScrollController scrollController = ScrollController();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -29,30 +31,33 @@ class AddPatientPage extends StatelessWidget {
         centerTitle: false,
       ),
       body: SingleChildScrollView(
+        controller: scrollController,
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _buildFormCard(
-              title: 'Personal Information',
+              title: 'Patient Information',
               children: [
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(
+                      child: Obx(() => _buildTextField(
                         label: 'First Name',
                         controller: controller.firstNameController,
                         hint: 'Margaret',
                         isRequired: true,
-                      ),
+                        errorText: controller.fieldErrors['firstName'],
+                      )),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildTextField(
+                      child: Obx(() => _buildTextField(
                         label: 'Last Name',
                         controller: controller.lastNameController,
                         hint: 'Thompson',
                         isRequired: true,
-                      ),
+                        errorText: controller.fieldErrors['lastName'],
+                      )),
                     ),
                   ],
                 ),
@@ -61,61 +66,63 @@ class AddPatientPage extends StatelessWidget {
                   label: 'PATIENT ID / MRN',
                   controller: controller.patientIdMrnController,
                   hint: 'MRN-45678',
-                  isRequired: true,
+                  isRequired: false,
                   textCapitalization: TextCapitalization.characters,
                 ),
+                const SizedBox(height: 16),
+                Obx(() => _buildDobDropdowns(controller)),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDateField(
-                        label: 'Date of Birth',
-                        hint: 'DD-MM-YYYY',
-                        value: controller.selectedDateOfBirth,
-                        onTap: controller.pickDateOfBirth,
+                      child: Obx(() => _buildDropdownField(
+                        label: 'SEX',
+                        value: controller.selectedSex,
+                        items: controller.sexes,
                         isRequired: true,
-                      ),
+                        hint: 'Select Sex',
+                        errorText: controller.fieldErrors['sex'],
+                      )),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildDropdownField(
-                        label: 'GENDER',
-                        value: controller.selectedGender,
-                        items: controller.genders,
+                      child: Obx(() => _buildDropdownField(
+                        label: 'ANTICIPATED LIFE EXPECTANCY',
+                        value: controller.selectedLifeExpectancy,
+                        items: controller.lifeExpectancyOptions,
                         isRequired: true,
-                        hint: 'Select Gender',
-                      ),
+                        hint: 'Select',
+                        errorText: controller.fieldErrors['lifeExpectancy'],
+                      )),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField(
-                  label: 'PHONE NUMBER',
-                  controller: controller.phoneNumberController,
-                  hint: '017444114084',
-                  prefixIcon: Icons.phone_outlined,
-                  isRequired: true,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  label: 'MEDICATION ALLERGIES',
-                  controller: controller.medicationAllergiesController,
-                  hint: '',
-                  maxLines: 2,
-                ),
+                Obx(() => _buildAllergyAutocomplete(controller)),
               ],
             ),
             const SizedBox(height: 16),
             _buildFormCard(
               title: 'Admission Information',
               children: [
+                Obx(() => _buildDropdownField(
+                  label: 'ORGANIZATION / INSTITUTION',
+                  value: controller.selectedOrganizationId,
+                  items: controller.organizationsList.map((e) => e.name).toList(),
+                  values: controller.organizationsList.map((e) => e.id).toList(),
+                  isRequired: true,
+                  hint: 'Select Organization',
+                  isLoading: controller.isOrganizationsLoading.value,
+                  errorText: controller.fieldErrors['organizationId'],
+                )),
+                const SizedBox(height: 16),
                 _buildDateField(
                   label: 'ADMISSION DATE',
-                  hint: 'DD-MM-YYYY',
+                  hint: 'MM/DD/YYYY',
                   value: controller.selectedAdmissionDate,
                   onTap: controller.pickAdmissionDate,
                   isRequired: true,
+                  errorText: controller.fieldErrors['admissionDate'],
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -164,7 +171,17 @@ class AddPatientPage extends StatelessWidget {
                     () => ElevatedButton(
                       onPressed: controller.isLoading.value
                           ? null
-                          : controller.addPatient,
+                          : () {
+                              controller.addPatient().then((_) {
+                                if (controller.fieldErrors.isNotEmpty) {
+                                  scrollController.animateTo(
+                                    0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                }
+                              });
+                            },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: const Color(0xFF0C3064),
@@ -251,6 +268,8 @@ class AddPatientPage extends StatelessWidget {
     int maxLines = 1,
     TextInputType? keyboardType,
     TextCapitalization textCapitalization = TextCapitalization.none,
+    String? errorText,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,6 +298,8 @@ class AddPatientPage extends StatelessWidget {
           maxLines: maxLines,
           keyboardType: keyboardType,
           textCapitalization: textCapitalization,
+          onChanged: onChanged,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
@@ -287,6 +308,8 @@ class AddPatientPage extends StatelessWidget {
                 : null,
             filled: true,
             fillColor: Colors.white,
+            errorText: errorText,
+            errorStyle: const TextStyle(color: Colors.red, fontSize: 11),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
@@ -306,7 +329,150 @@ class AddPatientPage extends StatelessWidget {
                 width: 1.5,
               ),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDobDropdowns(AddPatientController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: const TextSpan(
+            text: 'DATE OF BIRTH',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+            children: [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _buildDropdownField(
+                label: '',
+                value: controller.selectedMonth,
+                items: controller.months,
+                hint: 'Month',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: _buildDropdownField(
+                label: '',
+                value: controller.selectedDay,
+                items: controller.availableDays,
+                hint: 'Day',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: _buildDropdownField(
+                label: '',
+                value: controller.selectedYear,
+                items: controller.availableYears,
+                hint: 'Year',
+              ),
+            ),
+          ],
+        ),
+        if (controller.fieldErrors['dob'] != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 12),
+            child: Text(
+              controller.fieldErrors['dob']!,
+              style: const TextStyle(color: Colors.red, fontSize: 11),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAllergyAutocomplete(AddPatientController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTextField(
+          label: 'MEDICATION ALLERGIES',
+          controller: controller.allergySearchController,
+          hint: 'Search allergies...',
+          isRequired: true,
+          onChanged: controller.onAllergySearchChanged,
+          errorText: controller.fieldErrors['allergies'],
+        ),
+        if (controller.allergySuggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: controller.allergySuggestions.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final allergy = controller.allergySuggestions[index];
+                return ListTile(
+                  title: Text(
+                    allergy.custom ? 'Add "${allergy.name}" as custom' : allergy.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: allergy.custom ? const Color(0xFF3B82F6) : const Color(0xFF1E293B),
+                      fontWeight: allergy.custom ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () => controller.addAllergy(allergy),
+                );
+              },
+            ),
+          ),
+        if (controller.isAllergiesLoading.value)
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+          ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: controller.selectedAllergies.map((allergy) {
+            return Chip(
+              label: Text(allergy.name, style: const TextStyle(fontSize: 12)),
+              backgroundColor: const Color(0xFFF1F5F9),
+              deleteIcon: const Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
+              onDeleted: () => controller.removeAllergy(allergy),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              side: BorderSide.none,
+            );
+          }).toList(),
         ),
       ],
     );
@@ -318,6 +484,7 @@ class AddPatientPage extends StatelessWidget {
     required VoidCallback onTap,
     bool isRequired = false,
     String? hint,
+    String? errorText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,9 +511,7 @@ class AddPatientPage extends StatelessWidget {
         Obx(() {
           final DateTime? selectedValue = value.value;
           final bool isEmpty = selectedValue == null;
-          final String displayText = isEmpty
-              ? (hint ?? '')
-              : _formatDate(selectedValue);
+          final String displayText = isEmpty ? (hint ?? '') : _formatDate(selectedValue);
 
           return InkWell(
             onTap: onTap,
@@ -357,7 +522,7 @@ class AddPatientPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(color: errorText != null ? Colors.red : const Color(0xFFBFDBFE)),
               ),
               child: Row(
                 children: [
@@ -365,9 +530,7 @@ class AddPatientPage extends StatelessWidget {
                     child: Text(
                       displayText,
                       style: TextStyle(
-                        color: isEmpty
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF1E293B),
+                        color: isEmpty ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B),
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                       ),
@@ -383,6 +546,14 @@ class AddPatientPage extends StatelessWidget {
             ),
           );
         }),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 12),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Colors.red, fontSize: 11),
+            ),
+          ),
       ],
     );
   }
@@ -391,84 +562,98 @@ class AddPatientPage extends StatelessWidget {
     required String label,
     required RxString value,
     required List<String> items,
+    List<String>? values,
     bool isRequired = false,
     String? hint,
+    bool isLoading = false,
+    String? errorText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            text: label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+        if (label.isNotEmpty) ...[
+          RichText(
+            text: TextSpan(
+              text: label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+              children: [
+                if (isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: Colors.red),
+                  ),
+              ],
             ),
-            children: [
-              if (isRequired)
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: Colors.red),
-                ),
-            ],
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         Obx(() {
-          final String? selectedValue = value.value.isEmpty
-              ? null
-              : value.value;
+          final String? selectedValue = value.value.isEmpty ? null : value.value;
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              border: Border.all(color: errorText != null ? Colors.red : const Color(0xFFBFDBFE)),
               color: Colors.white,
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedValue,
-                dropdownColor: Colors.white,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Color(0xFF1E293B),
-                ),
-                isExpanded: true,
-                hint: Text(
-                  hint ?? 'Select',
-                  style: const TextStyle(
-                    color: Color(0xFFCBD5E1),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                items: items
-                    .map(
-                      (String item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(
-                          item,
-                          style: const TextStyle(
-                            color: Color(0xFF1E293B),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
+            child: isLoading
+                ? const SizedBox(
+                    height: 48,
+                    child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedValue,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Color(0xFF1E293B),
+                      ),
+                      isExpanded: true,
+                      hint: Text(
+                        hint ?? 'Select',
+                        style: const TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    value.value = newValue;
-                  }
-                },
-              ),
-            ),
+                      items: List.generate(items.length, (index) {
+                        return DropdownMenuItem<String>(
+                          value: values != null ? values[index] : items[index],
+                          child: Text(
+                            items[index],
+                            style: const TextStyle(
+                              color: Color(0xFF1E293B),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        );
+                      }),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          value.value = newValue;
+                        }
+                      },
+                    ),
+                  ),
           );
         }),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 12),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Colors.red, fontSize: 11),
+            ),
+          ),
       ],
     );
   }
@@ -477,6 +662,6 @@ class AddPatientPage extends StatelessWidget {
     final String day = date.day.toString().padLeft(2, '0');
     final String month = date.month.toString().padLeft(2, '0');
     final String year = date.year.toString().padLeft(4, '0');
-    return '$day-$month-$year';
+    return '$month/$day/$year';
   }
 }

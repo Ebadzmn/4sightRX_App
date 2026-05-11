@@ -4,16 +4,12 @@ import '../../core/network/network_exception.dart';
 import '../../core/services/storage_service.dart';
 import '../../data/models/login_response.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../data/models/activity_model.dart';
 import '../../data/models/home_stats_model.dart';
 import '../../data/repositories/analytics_repository.dart';
 
 class HomeController extends GetxController {
   final RxBool isProfileLoading = false.obs;
   final Rxn<UserModel> userProfile = Rxn<UserModel>();
-
-  final RxList<ActivityModel> activityList = <ActivityModel>[].obs;
-  final RxBool isActivityLoading = false.obs;
 
   final Rxn<HomeStatsModel> homeStats = Rxn<HomeStatsModel>();
   final RxBool isStatsLoading = false.obs;
@@ -32,7 +28,6 @@ class HomeController extends GetxController {
     await _loadCachedProfile();
     await Future.wait([
       getProfile(),
-      fetchActivities(),
       fetchStats(),
     ]);
   }
@@ -91,25 +86,8 @@ class HomeController extends GetxController {
   Future<void> refreshProfile() async {
     await Future.wait([
       getProfile(),
-      fetchActivities(),
       fetchStats(),
     ]);
-  }
-
-  Future<void> fetchActivities() async {
-    isActivityLoading.value = true;
-    try {
-      final activities = await _analyticsRepository.fetchRecentActivities();
-      activityList.assignAll(activities);
-    } catch (e) {
-      Get.snackbar(
-        'Activities',
-        'Failed to load activities',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } finally {
-      isActivityLoading.value = false;
-    }
   }
 
   Future<void> fetchStats() async {

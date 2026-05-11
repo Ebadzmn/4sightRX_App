@@ -221,10 +221,14 @@ class MedicationRepository {
     throw NetworkException(message: 'Failed to add medication');
   }
 
-  Future<List<MedicationModel>> extractMedications(File file) async {
+  Future<List<MedicationModel>> extractMedications(List<File> files) async {
+    if (files.isEmpty) {
+      throw NetworkException(message: 'No files selected');
+    }
+
     final response = await _apiClient.postMultipart(
       ApiEndpoints.extractMedicationText,
-      files: {'image': file},
+      files: {'files': files},
     );
 
     final responseData = response.data;

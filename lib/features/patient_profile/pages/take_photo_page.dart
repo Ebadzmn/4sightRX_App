@@ -74,9 +74,16 @@ class TakePhotoPage extends StatelessWidget {
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.file(
-                        controller.selectedFile.value!,
-                        fit: BoxFit.cover,
+                      PageView.builder(
+                        controller: controller.pageController,
+                        onPageChanged: (index) => controller.activePreviewIndex.value = index,
+                        itemCount: controller.selectedFiles.length,
+                        itemBuilder: (context, index) {
+                          return Image.file(
+                            controller.selectedFiles[index],
+                            fit: BoxFit.cover,
+                          );
+                        },
                       ),
                       Container(
                         decoration: BoxDecoration(
@@ -84,10 +91,61 @@ class TakePhotoPage extends StatelessWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.4),
                               Colors.transparent,
-                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.6),
                             ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${controller.selectedFiles.length} captured',
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 16,
+                        left: 16,
+                        right: 16,
+                        child: SizedBox(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: controller.selectedFiles.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () => controller.onThumbnailTapped(index),
+                                child: Obx(() {
+                                  final isActive = controller.activePreviewIndex.value == index;
+                                  return Container(
+                                    width: 60,
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isActive ? const Color(0xFF38B6FF) : Colors.white,
+                                        width: isActive ? 3 : 2,
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: Image.file(
+                                      controller.selectedFiles[index],
+                                      fit: BoxFit.cover,
+                                    ),
+                                  );
+                                }),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -136,60 +194,6 @@ class TakePhotoPage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Obx(() {
-            if (!controller.hasSelectedFile) {
-              return Column(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      await controller.captureImageFromCamera();
-                    },
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0C3064),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0C3064).withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.camera_alt_outlined,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Tap to capture',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: () async {
-                      await controller.pickImageFromGallery();
-                    },
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Pick from Gallery'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              );
-            }
-
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -198,11 +202,9 @@ class TakePhotoPage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await controller.captureImageFromCamera();
-                          },
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Retake'),
+                          onPressed: () => _showSourcePicker(controller),
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                          label: Text(controller.hasSelectedFile ? 'Add Another' : 'Capture / Pick'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -212,60 +214,68 @@ class TakePhotoPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await controller.pickImageFromGallery();
-                          },
-                          icon: const Icon(Icons.photo_library_outlined, size: 18),
-                          label: const Text('Gallery'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      if (controller.hasSelectedFile) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              controller.removeFile(controller.activePreviewIndex.value);
+                            },
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            label: const Text('Remove'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: controller.isLoading.value
-                        ? null
-                        : () {
-                            Get.to(() => const DocumentProcessingPage());
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF38B6FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  if (controller.hasSelectedFile) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : () {
+                              Get.to(
+                                () => const DocumentProcessingPage(),
+                                arguments: {'patientId': controller.patientId.value},
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF38B6FF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size(double.infinity, 56),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF38B6FF).withOpacity(0.4),
                       ),
-                      minimumSize: const Size(double.infinity, 56),
-                      elevation: 4,
-                      shadowColor: const Color(0xFF38B6FF).withOpacity(0.4),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Extract Medications',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
-                    child: controller.isLoading.value
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Extract Medications',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                  ],
                   if (controller.errorMessage.value.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _buildErrorBanner(controller.errorMessage.value),
@@ -280,59 +290,56 @@ class TakePhotoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilePreview(MedicationOcrController controller) {
-    return Obx(() {
-      final fileName = controller.selectedFileName.value;
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
+  Future<void> _showSourcePicker(MedicationOcrController controller) async {
+    await Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Row(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 42,
+              height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.image_outlined, color: Color(0xFF0C3064)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Selected file',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF1E293B),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
+            const SizedBox(height: 20),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+                color: Color(0xFF0C3064),
+              ),
+              title: const Text('Take a Photo'),
+              onTap: () async {
+                Get.back();
+                await controller.captureImageFromCamera();
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.image_outlined,
+                color: Color(0xFF0C3064),
+              ),
+              title: const Text('Pick Image from Gallery'),
+              onTap: () async {
+                Get.back();
+                await controller.pickImageFromGallery();
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
-      );
-    });
+      ),
+      isScrollControlled: true,
+    );
   }
 
   Widget _buildErrorBanner(String message) {

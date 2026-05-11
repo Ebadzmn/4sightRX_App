@@ -5,164 +5,284 @@ import '../../core/network/network_exception.dart';
 import '../../routes/app_routes.dart';
 import '../../data/repositories/patient_repository.dart';
 
+import 'dart:async';
+import '../../data/models/allergy_model.dart';
+import '../../data/models/organization_model.dart';
+import '../../data/repositories/organization_repository.dart';
+
 class AddPatientController extends GetxController {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController patientIdMrnController = TextEditingController();
-  final TextEditingController phoneNumberController = TextEditingController();
-  final TextEditingController medicationAllergiesController =
-      TextEditingController();
+  final TextEditingController allergySearchController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   final RxBool isLoading = false.obs;
-  final RxString selectedGender = ''.obs;
-  final Rx<DateTime?> selectedDateOfBirth = Rx<DateTime?>(null);
+  final RxString selectedSex = 'Male'.obs;
+  
+  // DOB Dropdowns
+  final RxString selectedMonth = ''.obs;
+  final RxString selectedDay = ''.obs;
+  final RxString selectedYear = ''.obs;
+  
   final Rx<DateTime?> selectedAdmissionDate = Rx<DateTime?>(null);
+  
+  // New Fields
+  final RxString selectedOrganizationId = ''.obs;
+  final RxString selectedLifeExpectancy = ''.obs;
+  
+  // Allergies
+  final RxList<AllergyModel> selectedAllergies = <AllergyModel>[].obs;
+  final RxList<AllergyModel> allergySuggestions = <AllergyModel>[].obs;
+  final RxBool isAllergiesLoading = false.obs;
+  Timer? _debounce;
+
+  // Organizations
+  final RxList<OrganizationModel> organizationsList = <OrganizationModel>[].obs;
+  final RxBool isOrganizationsLoading = false.obs;
+
+  // Field-level Errors
+  final RxMap<String, String> fieldErrors = <String, String>{}.obs;
 
   final PatientRepository _patientRepository = PatientRepository();
+  final OrganizationRepository _organizationRepository = OrganizationRepository();
 
-  final List<String> genders = ['Male', 'Female', 'Other'];
+  final List<String> sexes = ['Male', 'Female'];
+  final List<String> lifeExpectancyOptions = [
+    '0-6 days',
+    '1-4 weeks',
+    '1-3 months',
+    '4-6 months',
+    '6+ months'
+  ];
+
+  final List<String> months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  List<String> get availableDays {
+    if (selectedMonth.isEmpty || selectedYear.isEmpty) return [];
+    int monthIndex = months.indexOf(selectedMonth.value) + 1;
+    int year = int.tryParse(selectedYear.value) ?? DateTime.now().year;
+    int daysInMonth = DateTime(year, monthIndex + 1, 0).day;
+    return List.generate(daysInMonth, (index) => (index + 1).toString());
+  }
+
+  List<String> get availableYears {
+    int currentYear = DateTime.now().year;
+    return List.generate(120, (index) => (currentYear - index).toString());
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchOrganizations();
+
+    // Reset day if it's no longer valid for the selected month/year
+    everAll([selectedMonth, selectedYear], (_) {
+      if (selectedDay.isNotEmpty) {
+        final days = availableDays;
+        if (!days.contains(selectedDay.value)) {
+          selectedDay.value = '';
+        }
+      }
+      if (selectedMonth.isNotEmpty && selectedDay.isNotEmpty && selectedYear.isNotEmpty) {
+        fieldErrors.remove('dob');
+      }
+    });
+
+    ever(selectedDay, (_) {
+      if (selectedMonth.isNotEmpty && selectedDay.isNotEmpty && selectedYear.isNotEmpty) {
+        fieldErrors.remove('dob');
+      }
+    });
+
+    ever(selectedSex, (_) => fieldErrors.remove('sex'));
+    ever(selectedOrganizationId, (_) => fieldErrors.remove('organizationId'));
+    ever(selectedLifeExpectancy, (_) => fieldErrors.remove('lifeExpectancy'));
+  }
 
   @override
   void onClose() {
     firstNameController.dispose();
     lastNameController.dispose();
     patientIdMrnController.dispose();
-    phoneNumberController.dispose();
-    medicationAllergiesController.dispose();
+    allergySearchController.dispose();
     notesController.dispose();
+    _debounce?.cancel();
     super.onClose();
   }
 
-  Future<void> pickDateOfBirth() async {
-    if (isLoading.value) {
-      return;
-    }
-
-    final pickedDate = await _pickDate(
-      initialDate:
-          selectedDateOfBirth.value ??
-          DateTime.now().subtract(const Duration(days: 365 * 30)),
-    );
-
-    if (pickedDate != null) {
-      selectedDateOfBirth.value = pickedDate;
+  Future<void> fetchOrganizations() async {
+    isOrganizationsLoading.value = true;
+    try {
+      final orgs = await _organizationRepository.getOrganizations();
+      organizationsList.assignAll(orgs);
+    } catch (e) {
+      // Handle error silently or show snackbar
+    } finally {
+      isOrganizationsLoading.value = false;
     }
   }
 
-  Future<void> pickAdmissionDate() async {
-    if (isLoading.value) {
-      return;
-    }
+  void onAllergySearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (query.isNotEmpty) {
+        fetchAllergies(query);
+      } else {
+        allergySuggestions.clear();
+      }
+    });
+  }
 
-    final pickedDate = await _pickDate(
+  Future<void> fetchAllergies(String query) async {
+    isAllergiesLoading.value = true;
+    try {
+      final results = await _patientRepository.fetchAllergies(search: query);
+      allergySuggestions.assignAll(results);
+      
+      // Add "Other" option if not empty and not already in suggestions
+      if (query.isNotEmpty && !allergySuggestions.any((a) => a.name.toLowerCase() == query.toLowerCase())) {
+        allergySuggestions.add(AllergyModel(allergyId: 'other', name: query, custom: true));
+      }
+    } catch (e) {
+      // Handle error
+    } finally {
+      isAllergiesLoading.value = false;
+    }
+  }
+
+  void addAllergy(AllergyModel allergy) {
+    if (!selectedAllergies.any((a) => a.name.toLowerCase() == allergy.name.toLowerCase())) {
+      selectedAllergies.add(allergy);
+    }
+    allergySearchController.clear();
+    allergySuggestions.clear();
+    fieldErrors.remove('allergies');
+  }
+
+  void removeAllergy(AllergyModel allergy) {
+    selectedAllergies.remove(allergy);
+  }
+
+  Future<void> pickAdmissionDate() async {
+    if (isLoading.value) return;
+
+    final pickedDate = await showDatePicker(
+      context: Get.context!,
       initialDate: selectedAdmissionDate.value ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
     if (pickedDate != null) {
       selectedAdmissionDate.value = pickedDate;
+      fieldErrors.remove('admissionDate');
     }
-  }
-
-  Future<DateTime?> _pickDate({required DateTime initialDate}) async {
-    final context = Get.context;
-    if (context == null) {
-      return null;
-    }
-
-    final firstDate = DateTime(1900);
-    final lastDate = DateTime.now();
-    final safeInitialDate = initialDate.isAfter(lastDate)
-        ? lastDate
-        : (initialDate.isBefore(firstDate) ? firstDate : initialDate);
-
-    return showDatePicker(
-      context: context,
-      initialDate: safeInitialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-    );
   }
 
   Future<void> addPatient() async {
-    if (isLoading.value) {
-      return;
-    }
+    if (isLoading.value) return;
 
-    final validationMessage = _validate();
-    if (validationMessage != null) {
-      Get.snackbar(
-        'Add patient failed',
-        validationMessage,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
+    if (!_validate()) return;
 
     isLoading.value = true;
     try {
+      final dobStr = _getDobString();
+      
+      final payload = {
+        'firstName': firstNameController.text.trim(),
+        'lastName': lastNameController.text.trim(),
+        'sex': selectedSex.value,
+        'dob': dobStr,
+        'mrn': patientIdMrnController.text.trim(),
+        'organizationId': selectedOrganizationId.value,
+        'admissionDate': _formatDateToPayload(selectedAdmissionDate.value!),
+        'lifeExpectancy': selectedLifeExpectancy.value,
+        'allergies': selectedAllergies.map((e) => e.toJson()).toList(),
+      };
+      
+      debugPrint('Adding Patient Payload: $payload');
+      
       await _patientRepository.addPatient(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
-        patientIdMrn: patientIdMrnController.text.trim().toUpperCase(),
-        dateOfBirth: _formatDate(selectedDateOfBirth.value!),
-        gender: selectedGender.value.trim(),
-        phoneNumber: phoneNumberController.text.trim(),
-        medicationAllergies: medicationAllergiesController.text.trim(),
-        admissionDate: _formatDate(selectedAdmissionDate.value!),
-        notes: notesController.text.trim(),
+        sex: selectedSex.value,
+        dob: dobStr,
+        mrn: patientIdMrnController.text.trim(),
+        organizationId: selectedOrganizationId.value,
+        admissionDate: _formatDateToPayload(selectedAdmissionDate.value!),
+        lifeExpectancy: selectedLifeExpectancy.value,
+        allergies: selectedAllergies,
       );
 
       _clearFields();
-      Get.snackbar(
-        'Success',
-        'Patient added successfully 🎉',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Success', 'Patient added successfully 🎉', snackPosition: SnackPosition.BOTTOM);
       Future.delayed(const Duration(milliseconds: 300), () {
         Get.offAllNamed(AppRoutes.home, arguments: 1);
       });
     } on NetworkException catch (error) {
-      if (error.statusCode == 401) {
-        return;
+      if (error.statusCode != 401) {
+        Get.snackbar('Error', error.message, snackPosition: SnackPosition.BOTTOM);
       }
-
-      Get.snackbar(
-        'Add patient failed',
-        _mapErrorMessage(error),
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } catch (_) {
-      Get.snackbar(
-        'Add patient failed',
-        'Something went wrong. Try again',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', 'Something went wrong', snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
   }
 
-  String? _validate() {
-    if (firstNameController.text.trim().isEmpty ||
-        lastNameController.text.trim().isEmpty ||
-        patientIdMrnController.text.trim().isEmpty ||
-        selectedDateOfBirth.value == null ||
-        selectedGender.value.trim().isEmpty ||
-        phoneNumberController.text.trim().isEmpty ||
-        selectedAdmissionDate.value == null) {
-      return 'Please fill all required fields';
+  bool _validate() {
+    fieldErrors.clear();
+    bool isValid = true;
+
+    if (firstNameController.text.trim().isEmpty) {
+      fieldErrors['firstName'] = 'First Name is required';
+      isValid = false;
+    }
+    if (lastNameController.text.trim().isEmpty) {
+      fieldErrors['lastName'] = 'Last Name is required';
+      isValid = false;
+    }
+    if (selectedMonth.isEmpty || selectedDay.isEmpty || selectedYear.isEmpty) {
+      fieldErrors['dob'] = 'Date of Birth is required';
+      isValid = false;
+    }
+    if (selectedSex.isEmpty) {
+      fieldErrors['sex'] = 'Sex is required';
+      isValid = false;
+    }
+    if (selectedOrganizationId.isEmpty) {
+      fieldErrors['organizationId'] = 'Organization is required';
+      isValid = false;
+    }
+    if (selectedAdmissionDate.value == null) {
+      fieldErrors['admissionDate'] = 'Admission Date is required';
+      isValid = false;
+    }
+    if (selectedLifeExpectancy.isEmpty) {
+      fieldErrors['lifeExpectancy'] = 'Life Expectancy is required';
+      isValid = false;
+    }
+    if (selectedAllergies.isEmpty) {
+      fieldErrors['allergies'] = 'Complete Medication Allergies Field';
+      isValid = false;
     }
 
-    final mrn = patientIdMrnController.text.trim().toUpperCase();
-    if (!RegExp(r'^MRN-\d{5}$').hasMatch(mrn)) {
-      return 'Please enter a valid MRN in the format MRN-XXXXX';
-    }
-
-    return null;
+    return isValid;
   }
 
-  String _formatDate(DateTime date) {
+  String _getDobString() {
+    int monthIndex = months.indexOf(selectedMonth.value) + 1;
+    final year = selectedYear.value.padLeft(4, '0');
+    final month = monthIndex.toString().padLeft(2, '0');
+    final day = selectedDay.value.padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  String _formatDateToPayload(DateTime date) {
     final year = date.year.toString().padLeft(4, '0');
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
@@ -173,42 +293,16 @@ class AddPatientController extends GetxController {
     firstNameController.clear();
     lastNameController.clear();
     patientIdMrnController.clear();
-    phoneNumberController.clear();
-    medicationAllergiesController.clear();
+    allergySearchController.clear();
     notesController.clear();
-    selectedGender.value = '';
-    selectedDateOfBirth.value = null;
+    selectedSex.value = 'Male';
+    selectedMonth.value = '';
+    selectedDay.value = '';
+    selectedYear.value = '';
     selectedAdmissionDate.value = null;
-  }
-
-  String _mapErrorMessage(NetworkException error) {
-    final message = error.message.toLowerCase();
-
-    if (error.statusCode == 500 || message.contains('server error')) {
-      return 'Server error. Please try again';
-    }
-
-    if (message.contains('already exists') ||
-        message.contains('duplicate') ||
-        message.contains('mrn')) {
-      return 'Patient ID already exists';
-    }
-
-    if (message.contains('invalid date format') ||
-        message.contains('date format')) {
-      return 'Invalid date format';
-    }
-
-    if (message.contains('required') ||
-        message.contains('missing') ||
-        message.contains('fill all required fields')) {
-      return 'Please fill all required fields';
-    }
-
-    if (message.contains('internet') || message.contains('connection')) {
-      return 'No internet connection';
-    }
-
-    return 'Something went wrong. Try again';
+    selectedOrganizationId.value = '';
+    selectedLifeExpectancy.value = '';
+    selectedAllergies.clear();
+    fieldErrors.clear();
   }
 }

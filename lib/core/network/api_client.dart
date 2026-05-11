@@ -131,26 +131,42 @@ class ApiClient {
   Future<Response<dynamic>> postMultipart(
     String url, {
     Map<String, dynamic>? fields,
-    Map<String, File>? files,
+    Map<String, dynamic>? files, // Changed from Map<String, File>?
     Map<String, dynamic>? query,
   }) async {
     try {
-      final formMap = <String, dynamic>{};
+      final formData = FormData();
 
       if (fields != null) {
-        formMap.addAll(fields);
+        fields.forEach((key, value) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        });
       }
 
       if (files != null) {
         for (final entry in files.entries) {
-          formMap[entry.key] = await MultipartFile.fromFile(
-            entry.value.path,
-            filename: entry.value.uri.pathSegments.last,
-          );
+          final value = entry.value;
+          if (value is File) {
+            formData.files.add(MapEntry(
+              entry.key,
+              await MultipartFile.fromFile(
+                value.path,
+                filename: value.uri.pathSegments.last,
+              ),
+            ));
+          } else if (value is List<File>) {
+            for (final f in value) {
+              formData.files.add(MapEntry(
+                entry.key,
+                await MultipartFile.fromFile(
+                  f.path,
+                  filename: f.uri.pathSegments.last,
+                ),
+              ));
+            }
+          }
         }
       }
-
-      final formData = FormData.fromMap(formMap);
 
       return await _dio.post(
         url,

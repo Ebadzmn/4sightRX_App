@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/network/network_exception.dart';
 import '../../../data/models/medication_model.dart';
@@ -15,15 +16,41 @@ class MedicationOcrController extends GetxController {
   final RxBool isSubmitting = false.obs;
   final RxString patientId = ''.obs;
   final RxString errorMessage = ''.obs;
-  final Rxn<File> selectedFile = Rxn<File>();
-  final RxString selectedFileName = ''.obs;
-  final RxString selectedFileType = ''.obs;
+  final RxList<File> selectedFiles = <File>[].obs;
   final RxList<MedicationModel> medicationList = <MedicationModel>[].obs;
+  
+  final RxInt activePreviewIndex = 0.obs;
+  late PageController pageController;
 
   final ImagePicker _imagePicker = ImagePicker();
   final MedicationRepository _medicationRepository = MedicationRepository();
 
-  bool get hasSelectedFile => selectedFile.value != null;
+  bool get hasSelectedFile => selectedFiles.isNotEmpty;
+
+  @override
+  void onInit() {
+    super.onInit();
+    pageController = PageController();
+  }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
+  }
+
+  void onThumbnailTapped(int index) {
+    if (index >= 0 && index < selectedFiles.length) {
+      activePreviewIndex.value = index;
+      if (pageController.hasClients) {
+        pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
 
   void configureForPatient(String value) {
     final trimmedValue = value.trim();
@@ -32,9 +59,8 @@ class MedicationOcrController extends GetxController {
     }
 
     patientId.value = trimmedValue;
-    selectedFile.value = null;
-    selectedFileName.value = '';
-    selectedFileType.value = '';
+    selectedFiles.clear();
+    activePreviewIndex.value = 0;
     isLoading.value = false;
     isSubmitting.value = false;
     hasStartedExtraction.value = false;
@@ -46,15 +72,65 @@ class MedicationOcrController extends GetxController {
     errorMessage.value = '';
   }
 
-  void setSelectedFile(File file, {String? fileType}) {
-    selectedFile.value = file;
-    selectedFileName.value = _fileName(file);
-    selectedFileType.value = fileType ?? _inferFileType(file);
+  void addFiles(List<File> files) {
+    // Avoid duplicates based on path
+    bool hasNewFiles = false;
+    for (final file in files) {
+      if (!selectedFiles.any((f) => f.path == file.path)) {
+        selectedFiles.add(file);
+        hasNewFiles = true;
+      }
+    }
+    
+    if (hasNewFiles && selectedFiles.isNotEmpty) {
+      activePreviewIndex.value = selectedFiles.length - 1;
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (pageController.hasClients) {
+          pageController.jumpToPage(activePreviewIndex.value);
+        }
+      });
+    }
+    
     clearResults();
+  }
+
+  void removeFile(int index) {
+    if (index >= 0 && index < selectedFiles.length) {
+      selectedFiles.removeAt(index);
+      
+      if (selectedFiles.isEmpty) {
+        activePreviewIndex.value = 0;
+      } else if (activePreviewIndex.value >= selectedFiles.length) {
+        activePreviewIndex.value = selectedFiles.length - 1;
+      }
+    }
   }
 
   void appendMedication(MedicationModel medication) {
     medicationList.add(medication);
+  }
+
+  void updateMedicationField(int index, String field, String value) {
+    if (index < 0 || index >= medicationList.length) return;
+    
+    final current = medicationList[index];
+    MedicationModel updated;
+    
+    switch (field) {
+      case 'dose':
+        updated = current.copyWith(dose: value);
+        break;
+      case 'route':
+        updated = current.copyWith(route: value);
+        break;
+      case 'duration':
+        updated = current.copyWith(duration: value);
+        break;
+      default:
+        return;
+    }
+    
+    medicationList[index] = updated;
   }
 
   void clearReviewedMedications() {
@@ -62,23 +138,38 @@ class MedicationOcrController extends GetxController {
   }
 
   Future<bool> pickImageFromGallery() async {
-    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (picked == null) {
-      return false;
+    try {
+      final pickedFiles = await _imagePicker.pickMultiImage();
+      if (pickedFiles.isNotEmpty) {
+        addFiles(pickedFiles.map((p) => File(p.path)).toList());
+        return true;
+      }
+    } catch (e) {
+      _showError('Failed to pick images');
     }
-
-    setSelectedFile(File(picked.path), fileType: 'Image');
-    return true;
+    return false;
   }
 
   Future<bool> captureImageFromCamera() async {
-    final picked = await _imagePicker.pickImage(source: ImageSource.camera);
-    if (picked == null) {
-      return false;
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80, // Compression as requested
+      );
+      if (picked != null) {
+        addFiles([File(picked.path)]);
+        return true;
+      }
+    } on PlatformException catch (e) {
+      if (e.code == 'camera_access_denied') {
+        _showError('Camera permission denied');
+      } else {
+        _showError('Failed to capture image');
+      }
+    } catch (e) {
+      _showError('Failed to capture image');
     }
-
-    setSelectedFile(File(picked.path), fileType: 'Image');
-    return true;
+    return false;
   }
 
   Future<void> pickPdfDocument() async {
@@ -86,14 +177,16 @@ class MedicationOcrController extends GetxController {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['pdf'],
+        allowMultiple: true,
       );
 
-      final path = result?.files.single.path;
-      if (path == null || path.isEmpty) {
-        return;
+      if (result != null && result.files.isNotEmpty) {
+        final files = result.files
+            .where((f) => f.path != null)
+            .map((f) => File(f.path!))
+            .toList();
+        addFiles(files);
       }
-
-      setSelectedFile(File(path), fileType: 'PDF');
     } on MissingPluginException {
       errorMessage.value =
           'File picker is not ready. Stop the app and run it again.';
@@ -109,9 +202,8 @@ class MedicationOcrController extends GetxController {
       return false;
     }
 
-    final file = selectedFile.value;
-    if (file == null) {
-      errorMessage.value = 'Upload failed';
+    if (selectedFiles.isEmpty) {
+      errorMessage.value = 'No files selected';
       return false;
     }
 
@@ -119,7 +211,7 @@ class MedicationOcrController extends GetxController {
     errorMessage.value = '';
 
     try {
-      final result = await _medicationRepository.extractMedications(file);
+      final result = await _medicationRepository.extractMedications(selectedFiles);
       medicationList.assignAll(result);
       if (result.isEmpty) {
         throw NetworkException(message: 'No medications detected');
@@ -162,9 +254,7 @@ class MedicationOcrController extends GetxController {
       final medicationIds = await _medicationRepository
           .submitReviewedMedications(medicationList);
       clearReviewedMedications();
-      selectedFile.value = null;
-      selectedFileName.value = '';
-      selectedFileType.value = '';
+      selectedFiles.clear();
       hasStartedExtraction.value = false;
       return medicationIds;
     } on NetworkException catch (error) {
@@ -204,17 +294,12 @@ class MedicationOcrController extends GetxController {
     return 'Failed to save medications';
   }
 
-  String _fileName(File file) {
-    return file.path.split(Platform.pathSeparator).last;
-  }
-
-  String _inferFileType(File file) {
-    final lower = file.path.toLowerCase();
-    if (lower.endsWith('.pdf')) {
-      return 'PDF';
-    }
-
-    return 'Image';
+  String get selectedFileType {
+    if (selectedFiles.isEmpty) return '';
+    final path = selectedFiles.last.path.toLowerCase();
+    if (path.endsWith('.pdf')) return 'PDF Document';
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png')) return 'Image File';
+    return 'Unknown';
   }
 
   String _mapErrorMessage(NetworkException error) {

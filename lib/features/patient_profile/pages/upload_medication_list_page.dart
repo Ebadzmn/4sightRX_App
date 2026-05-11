@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -108,8 +109,8 @@ class UploadMedicationListPage extends StatelessWidget {
                           ),
                           child: Text(
                             controller.hasSelectedFile
-                                ? 'Change File'
-                                : 'Choose File',
+                                ? 'Add More Files'
+                                : 'Choose Files',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -117,15 +118,37 @@ class UploadMedicationListPage extends StatelessWidget {
                           ),
                         ),
                         if (controller.hasSelectedFile) ...[
-                          const SizedBox(height: 16),
-                          _buildFilePreview(controller),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Selected Files',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: controller.selectedFiles.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final file = controller.selectedFiles[index];
+                              return _buildFileItem(controller, file, index);
+                            },
+                          ),
+                          const SizedBox(height: 24),
                           ElevatedButton(
                             onPressed: controller.isLoading.value
                                 ? null
                                 : () {
                                     Get.to(
                                       () => const DocumentProcessingPage(),
+                                      arguments: {'patientId': controller.patientId.value},
                                     );
                                   },
                             style: ElevatedButton.styleFrom(
@@ -133,18 +156,27 @@ class UploadMedicationListPage extends StatelessWidget {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                               borderRadius: BorderRadius.circular(12),
                               ),
                               minimumSize: const Size(double.infinity, 56),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'Extract Medications',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            child: controller.isLoading.value
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Extract Medications',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                           ),
                         ],
                         if (controller.errorMessage.value.isNotEmpty) ...[
@@ -231,72 +263,74 @@ class UploadMedicationListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilePreview(MedicationOcrController controller) {
-    return Obx(() {
-      final fileName = controller.selectedFileName.value;
-      final fileType = controller.selectedFileType.value;
+  Widget _buildFileItem(MedicationOcrController controller, File file, int index) {
+    final fileName = file.path.split('/').last;
+    final isPdf = fileName.toLowerCase().endsWith('.pdf');
 
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                fileType == 'PDF' ? Icons.picture_as_pdf : Icons.image,
-                color: const Color(0xFF0C3064),
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Selected file',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w600,
-                    ),
+            child: isPdf 
+                ? const Icon(
+                    Icons.picture_as_pdf,
+                    color: Color(0xFF0C3064),
+                    size: 20,
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(file, fit: BoxFit.cover, width: 40, height: 40),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF1E293B),
-                      fontWeight: FontWeight.w600,
-                    ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    fileType,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
-                    ),
+                ),
+                Text(
+                  isPdf ? 'PDF Document' : 'Image File',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    });
+          ),
+          IconButton(
+            onPressed: () => controller.removeFile(index),
+            icon: const Icon(
+              Icons.remove_circle_outline,
+              color: Color(0xFFEF4444),
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildErrorBanner(String message) {

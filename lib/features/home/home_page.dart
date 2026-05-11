@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'home_controller.dart';
 import '../main/main_controller.dart';
 import '../patient_profile/pages/patient_profile_page.dart';
-import '../../data/models/activity_model.dart';
 import '../../data/models/home_stats_model.dart';
 import '../../routes/app_routes.dart';
 
@@ -123,27 +122,33 @@ class HomePage extends StatelessWidget {
                 // Stats Row
                 Obx(() {
                   final stats = homeController.homeStats.value;
-                  return Row(
+                  if (homeController.isStatsLoading.value && stats == null) {
+                    return _buildStatsLoading();
+                  }
+                  
+                  return Column(
                     children: [
-                      _buildStatCard(
-                        stats?.activePatients.toString() ?? '0',
-                        'Active Patients',
-                        Icons.people_outline,
-                        const Color(0xFF3B82F6),
+                      Row(
+                        children: [
+                          _buildStatCard(
+                            stats?.completedReconciliations.toString() ?? '0',
+                            'Total Completed Patient Reconciliations',
+                            Icons.check_circle_outline,
+                            const Color(0xFF10B981),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            stats?.formattedOperationalCostSavings ?? '\$0',
+                            'Operational nursing time savings',
+                            Icons.timer_outlined,
+                            const Color(0xFF3B82F6),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      _buildStatCard(
-                        stats?.completedReconciliations.toString() ?? '0',
-                        'Completed',
-                        Icons.check_circle_outline,
-                        const Color(0xFF10B981),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildStatCard(
-                        stats?.monthlySavings ?? '\$0',
-                        'Monthly Savings',
-                        Icons.trending_up,
-                        const Color(0xFF10B981),
+                      const SizedBox(height: 12),
+                      _buildMonthlySavingsCard(
+                        stats?.formattedAverageSavings ?? '\$0',
+                        stats?.formattedTotalMonthlySavings ?? '\$0',
                       ),
                     ],
                   );
@@ -178,73 +183,6 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                // Recent Activity Header
-                Row(
-                  children: const [
-                    Icon(Icons.access_time, color: Color(0xFF64748B), size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Recent Activity',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Activity List
-                Obx(() {
-                  if (homeController.isActivityLoading.value) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  final activities = homeController.activityList;
-                  if (activities.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text(
-                          'No recent activities found',
-                          style: TextStyle(color: Color(0xFF64748B)),
-                        ),
-                      ),
-                    );
-                  }
-
-                  final displayList = activities.take(4).toList();
-                  
-                  return Column(
-                    children: [
-                      ...displayList.map((activity) => _buildActivityItem(activity)),
-                      if (activities.length > 4) ...[
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () => Get.toNamed(AppRoutes.recentActivity),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Text(
-                                'See More',
-                                style: TextStyle(
-                                  color: Color(0xFF3B82F6),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.arrow_forward, size: 16, color: Color(0xFF3B82F6)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                }),
                 const SizedBox(height: 24),
                 // Quick Actions Card
                 Container(
@@ -306,7 +244,8 @@ class HomePage extends StatelessWidget {
   ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        height: 120,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -314,30 +253,37 @@ class HomePage extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
               blurRadius: 10,
-              offset: const Offset(08, 10),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF64748B),
+                height: 1.2,
               ),
             ),
           ],
@@ -346,71 +292,131 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildActivityItem(ActivityModel activity) {
+  Widget _buildMonthlySavingsCard(String avgSavings, String totalSavings) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.02),
             blurRadius: 10,
-            offset: const Offset(0, 0),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  activity.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.trending_up, color: Color(0xFF10B981), size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Monthly Med Savings',
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                    color: Color(0xFF64748B),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    const Icon(Icons.access_time, size: 12, color: Color(0xFF64748B)),
-                    const SizedBox(width: 4),
-                    Text(
-                      activity.timeAgo,
-                      style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            avgSavings,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const Text(
+                            'AVG/PT Savings',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      height: 30,
+                      width: 1,
+                      color: const Color(0xFFE2E8F0),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            totalSavings,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const Text(
+                            'Total Monthly Savings',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            activity.action,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatsLoading() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildLoadingCard()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildLoadingCard()),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildLoadingCard(width: double.infinity, height: 100),
+      ],
+    );
+  }
+
+  Widget _buildLoadingCard({double? width, double height = 120}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       ),
     );
   }

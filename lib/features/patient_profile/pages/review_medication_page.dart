@@ -75,7 +75,7 @@ class ReviewMedicationPage extends StatelessWidget {
                 children: List.generate(
                   controller.medicationList.length,
                   (index) =>
-                      _buildMedicationCard(controller.medicationList[index]),
+                      _buildMedicationCard(controller.medicationList[index], index, controller),
                 ),
               );
             }),
@@ -350,7 +350,7 @@ class ReviewMedicationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMedicationCard(MedicationModel item) {
+  Widget _buildMedicationCard(MedicationModel item, int index, MedicationOcrController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -408,41 +408,160 @@ class ReviewMedicationPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'Dose: ${item.dose.isEmpty ? 'Not provided' : item.dose}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
+                const SizedBox(height: 6),
+                InlineEditableField(
+                  label: 'Dose',
+                  value: item.dose,
+                  onChanged: (val) => controller.updateMedicationField(index, 'dose', val),
+                ),
+                InlineEditableField(
+                  label: 'Route',
+                  value: item.route,
+                  onChanged: (val) => controller.updateMedicationField(index, 'route', val),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    'Frequency: ${item.frequency.isEmpty ? 'Not provided' : item.frequency}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Route: ${item.route.isEmpty ? 'Not provided' : item.route}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Frequency: ${item.frequency.isEmpty ? 'Not provided' : item.frequency}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Duration: ${item.duration.isEmpty ? 'Not provided' : item.duration}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
-                  ),
+                InlineEditableField(
+                  label: 'Duration',
+                  value: item.duration,
+                  onChanged: (val) => controller.updateMedicationField(index, 'duration', val),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class InlineEditableField extends StatefulWidget {
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const InlineEditableField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  State<InlineEditableField> createState() => _InlineEditableFieldState();
+}
+
+class _InlineEditableFieldState extends State<InlineEditableField> {
+  bool _isEditing = false;
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && _isEditing) {
+        _saveAndExit();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(InlineEditableField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_isEditing) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _saveAndExit() {
+    if (_controller.text != widget.value) {
+      widget.onChanged(_controller.text);
+    }
+    setState(() {
+      _isEditing = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isEditing) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text('${widget.label}: ', style: const TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: TextFormField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF38B6FF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF38B6FF)),
+                    ),
+                    isDense: true,
+                  ),
+                  onFieldSubmitted: (_) => _saveAndExit(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isEditing = true;
+        });
+        _focusNode.requestFocus();
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+        color: Colors.transparent,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Text(
+                '${widget.label}: ${widget.value.isEmpty ? 'Not provided' : widget.value}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: widget.value.isEmpty ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF94A3B8)),
+          ],
+        ),
       ),
     );
   }

@@ -23,6 +23,32 @@ class MedicationModel {
     this.additionalInstructions = '',
   });
 
+  MedicationModel copyWith({
+    String? id,
+    String? medicationName,
+    String? strength,
+    String? form,
+    String? dose,
+    String? route,
+    String? frequency,
+    String? duration,
+    String? source,
+    String? additionalInstructions,
+  }) {
+    return MedicationModel(
+      id: id ?? this.id,
+      medicationName: medicationName ?? this.medicationName,
+      strength: strength ?? this.strength,
+      form: form ?? this.form,
+      dose: dose ?? this.dose,
+      route: route ?? this.route,
+      frequency: frequency ?? this.frequency,
+      duration: duration ?? this.duration,
+      source: source ?? this.source,
+      additionalInstructions: additionalInstructions ?? this.additionalInstructions,
+    );
+  }
+
   factory MedicationModel.fromJson(Map<String, dynamic> json) {
     return MedicationModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
@@ -71,6 +97,7 @@ class MedicationModel {
       'dose': dose.trim(),
       'route': route.trim(),
       'frequency': frequency.trim(),
+      'duration': duration.trim(),
       'source': source.trim().toLowerCase() == 'manual' ? 'manual' : 'ocr',
     };
 
@@ -110,7 +137,6 @@ class MedicationModel {
         form.trim().isEmpty ||
         dose.trim().isEmpty ||
         route.trim().isEmpty ||
-        frequency.trim().isEmpty ||
-        duration.trim().isEmpty;
+        frequency.trim().isEmpty;
   }
 }

@@ -2,6 +2,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/network_exception.dart';
 import '../models/patient_model.dart';
+import '../models/allergy_model.dart';
 
 class PatientPageResult {
   final List<PatientModel> patients;
@@ -205,29 +206,53 @@ class PatientRepository {
     return current;
   }
 
+  Future<List<AllergyModel>> fetchAllergies({String search = ''}) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.allergies,
+      query: search.isNotEmpty ? {'search': search} : null,
+    );
+
+    final responseData = response.data;
+    if (responseData is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Something went wrong. Try again');
+    }
+
+    final success = responseData['success'] as bool? ?? false;
+    final data = responseData['data'];
+
+    if (success && data is List) {
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(AllergyModel.fromJson)
+          .toList();
+    }
+
+    return [];
+  }
+
   Future<PatientModel> addPatient({
     required String firstName,
     required String lastName,
-    required String patientIdMrn,
-    required String dateOfBirth,
-    required String gender,
-    required String phoneNumber,
-    String medicationAllergies = '',
+    required String sex,
+    required String dob,
+    required String mrn,
+    required String organizationId,
     required String admissionDate,
-    String notes = '',
+    required String lifeExpectancy,
+    required List<AllergyModel> allergies,
   }) async {
     final response = await _apiClient.post(
       ApiEndpoints.patients,
       body: {
         'firstName': firstName,
         'lastName': lastName,
-        'patientIdMrn': patientIdMrn,
-        'dateOfBirth': dateOfBirth,
-        'gender': gender,
-        'phoneNumber': phoneNumber,
-        'medicationAllergies': medicationAllergies,
+        'sex': sex,
+        'dob': dob,
+        'mrn': mrn,
+        'organizationId': organizationId,
         'admissionDate': admissionDate,
-        'notes': notes,
+        'lifeExpectancy': lifeExpectancy,
+        'allergies': allergies.map((e) => e.toJson()).toList(),
       },
     );
 
@@ -242,9 +267,7 @@ class PatientRepository {
 
     if (!success) {
       throw NetworkException(
-        message: message.isNotEmpty
-            ? message
-            : 'Something went wrong. Try again',
+        message: message.isNotEmpty ? message : 'Something went wrong. Try again',
         statusCode: response.statusCode,
       );
     }

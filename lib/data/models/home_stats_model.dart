@@ -1,48 +1,52 @@
 class HomeStatsModel {
-  final int activePatients;
   final int completedReconciliations;
-  final String monthlySavings;
+  final double averageSavingsPerPatient;
+  final double totalMonthlySavings;
+  final double operationalCostSavings;
 
   HomeStatsModel({
-    required this.activePatients,
     required this.completedReconciliations,
-    required this.monthlySavings,
+    required this.averageSavingsPerPatient,
+    required this.totalMonthlySavings,
+    required this.operationalCostSavings,
   });
 
   factory HomeStatsModel.fromJson(Map<String, dynamic> json) {
     return HomeStatsModel(
-      activePatients: (json['totalActivePatients'] ??
-              json['activePatients'] ??
-              json['totalPatients'] ??
-              0) as int,
-      completedReconciliations: (json['totalCompletes'] ??
-              json['completedReconciliations'] ??
-              json['totalReconciliations'] ??
-              0) as int,
-      monthlySavings: _formatSavings(json['monthlySavings'] ?? json['totalSavings']),
+      completedReconciliations: (json['completedReconciliations'] ?? 0) as int,
+      averageSavingsPerPatient: _toDouble(json['averageSavingsPerPatient']),
+      totalMonthlySavings: _toDouble(json['totalMonthlySavings']),
+      operationalCostSavings: _toDouble(json['operationalCostSavings']),
     );
   }
 
-  static String _formatSavings(dynamic value) {
-    if (value == null) return '\$0';
-    String s = value.toString();
-    if (s.contains('\$')) return s;
-    try {
-      final numValue = double.parse(s);
-      if (numValue >= 1000) {
-        return '\$${(numValue / 1000).toStringAsFixed(1)}K';
-      }
-      return '\$${numValue.toStringAsFixed(0)}';
-    } catch (_) {
-      return '\$$s';
+  static double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  String get formattedAverageSavings => _formatCurrency(averageSavingsPerPatient);
+  String get formattedTotalMonthlySavings => _formatCurrency(totalMonthlySavings);
+  String get formattedOperationalCostSavings => _formatCurrency(operationalCostSavings);
+
+  static String _formatCurrency(double value) {
+    if (value >= 1000000) {
+      return '\$${(value / 1000000).toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      return '\$${(value / 1000).toStringAsFixed(1)}K';
     }
+    return '\$${value.toStringAsFixed(0)}';
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'activePatients': activePatients,
       'completedReconciliations': completedReconciliations,
-      'monthlySavings': monthlySavings,
+      'averageSavingsPerPatient': averageSavingsPerPatient,
+      'totalMonthlySavings': totalMonthlySavings,
+      'operationalCostSavings': operationalCostSavings,
     };
   }
 }
