@@ -58,7 +58,7 @@ class ReconciliationCompletePage extends StatelessWidget {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF64748B)),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),

@@ -253,7 +253,7 @@ class _LoginPageState extends State<LoginPage> {
           controller: controller,
           validator: validator,
           keyboardType: keyboardType,
-          obscureText: obscureText || isPassword,
+          obscureText: obscureText,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400),

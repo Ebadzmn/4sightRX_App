@@ -422,7 +422,7 @@ class _SignupPageState extends State<SignupPage> {
           controller: controller,
           validator: validator,
           keyboardType: keyboardType,
-          obscureText: obscureText || isPassword,
+          obscureText: obscureText,
           decoration: _inputDecoration(hint: hint, suffixIcon: suffixIcon),
           style: const TextStyle(color: Colors.black),
           cursorColor: const Color(0xFF0D477D),
