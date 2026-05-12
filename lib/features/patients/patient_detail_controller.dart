@@ -12,8 +12,7 @@ class PatientDetailController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rxn<PatientModel> patient = Rxn<PatientModel>();
 
-  final RxInt medicationsCount = 8.obs;
-  final RxString roomNumber = '302A'.obs;
+  final RxInt medicationsCount = 0.obs;
 
   final List<Map<String, dynamic>> recentReconciliations = [
     {'date': 'Feb 3, 2026', 'medications': 8, 'status': 'Completed'},
@@ -121,6 +120,16 @@ class PatientDetailController extends GetxController {
     return _formatDateTime(patient.value?.updatedAt ?? '');
   }
 
+  String get organizationName {
+    final value = patient.value?.organizationName.trim() ?? '';
+    return value.isEmpty ? 'General Medical Center' : value;
+  }
+
+  String get medicationsDisplay {
+    if (medicationsCount.value == 0) return 'Pending';
+    return medicationsCount.value.toString();
+  }
+
   void uploadFile() async {
     final ocrController = Get.put(MedicationOcrController());
     ocrController.configureForPatient(patientId);
@@ -184,27 +193,15 @@ class PatientDetailController extends GetxController {
   }
 
   String _formatDate(String value) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed == null) {
-      return value.isEmpty ? 'Not provided' : value;
+    if (value.isEmpty) return 'Not provided';
+    try {
+      final parsed = DateTime.parse(value);
+      final month = parsed.month.toString().padLeft(2, '0');
+      final day = parsed.day.toString().padLeft(2, '0');
+      return '$month/$day/${parsed.year}';
+    } catch (_) {
+      return value;
     }
-
-    const months = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    return '${parsed.day.toString().padLeft(2, '0')} ${months[parsed.month - 1]} ${parsed.year}';
   }
 
   String _formatDateTime(String value) {

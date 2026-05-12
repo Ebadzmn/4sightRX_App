@@ -12,6 +12,17 @@ class StorageService {
   static const String _isLoggedInKey = 'is_logged_in';
   static const String _userStatusKey = 'user_status';
   static const String _userVerifiedKey = 'user_verified';
+  static const String _biometricEnabledKey = 'biometric_enabled';
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_biometricEnabledKey, enabled);
+  }
+
+  Future<bool> isBiometricEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_biometricEnabledKey) ?? false;
+  }
 
   Future<void> saveAuthData({
     required String token,

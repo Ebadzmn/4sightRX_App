@@ -336,7 +336,7 @@ class PatientsPage extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Admitted ${patient.admissionDate}',
+                            'Admitted ${patient.formattedAdmissionDate}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

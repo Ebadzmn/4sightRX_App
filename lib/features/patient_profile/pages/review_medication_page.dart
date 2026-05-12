@@ -197,9 +197,12 @@ class ReviewMedicationPage extends StatelessWidget {
                   children: const [
                     Icon(Icons.warning, color: Color(0xFFD97706), size: 14),
                     SizedBox(width: 6),
-                    Text(
-                      'Please review highlighted medications before continuing',
-                      style: TextStyle(color: Color(0xFFD97706), fontSize: 12),
+                    Flexible(
+                      child: Text(
+                        'Please review highlighted medications before continuing',
+                        style: TextStyle(color: Color(0xFFD97706), fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ],
                 ),
@@ -311,15 +314,18 @@ class ReviewMedicationPage extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(
-                '${controller.medicationList.length} medications extracted',
-                style: const TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+              Expanded(
+                child: Text(
+                  '${controller.medicationList.length} meds extracted',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               const Icon(
                 Icons.warning_amber_rounded,
                 color: Color(0xFFD97706),
@@ -331,7 +337,7 @@ class ReviewMedicationPage extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFFD97706),
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -381,12 +387,16 @@ class ReviewMedicationPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      item.displayName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                    Expanded(
+                      child: Text(
+                        item.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
                     ),
                     if (item.needsReview) ...[

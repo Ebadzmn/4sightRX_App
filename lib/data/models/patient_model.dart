@@ -120,4 +120,16 @@ class PatientModel {
       'updatedAt': updatedAt,
     };
   }
+
+  String get formattedAdmissionDate {
+    if (admissionDate.isEmpty) return 'N/A';
+    try {
+      final parsed = DateTime.parse(admissionDate);
+      final month = parsed.month.toString().padLeft(2, '0');
+      final day = parsed.day.toString().padLeft(2, '0');
+      return '$month/$day/${parsed.year}';
+    } catch (_) {
+      return admissionDate;
+    }
+  }
 }

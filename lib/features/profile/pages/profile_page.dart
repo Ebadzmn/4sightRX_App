@@ -251,7 +251,7 @@ class ProfilePage extends StatelessWidget {
           Obx(
             () => _buildActionItem(
               icon: Icons.fingerprint,
-              title: 'Enable Face/Touch Id',
+              title: 'Enable Face and Touch ID',
               trailing: CupertinoSwitch(
                 value: controller.isFaceIdEnabled.value,
                 onChanged: controller.toggleFaceId,
@@ -379,24 +379,27 @@ class ProfilePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Sign Out',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Are you sure you want to sign out?',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Are you sure you want to sign out, ${profile?.name ?? 'User'}?',
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => Get.back(),
                   child: const Icon(
@@ -628,24 +631,27 @@ class ProfilePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Delete Account',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Delete Account',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Are you sure you want to delete your account?',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                    ),
-                  ],
+                      SizedBox(height: 4),
+                      Text(
+                        'Are you sure you want to delete your account?',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 GestureDetector(
                   onTap: () => Get.back(),
                   child: const Icon(

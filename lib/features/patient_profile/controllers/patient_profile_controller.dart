@@ -82,11 +82,6 @@ class PatientProfileController extends GetxController {
   String _formatDate(String dateStr) {
     if (dateStr.isEmpty) return 'N/A';
     try {
-      // Expecting YYYY-MM-DD
-      final parts = dateStr.split('-');
-      if (parts.length == 3) {
-        return '${parts[1]}/${parts[2]}/${parts[0]}'; // MM/DD/YYYY
-      }
       final date = DateTime.parse(dateStr);
       final month = date.month.toString().padLeft(2, '0');
       final day = date.day.toString().padLeft(2, '0');

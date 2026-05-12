@@ -52,7 +52,16 @@ class PatientProfilePage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(controller.avatarUrl),
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      child: Icon(
+                        controller.sex.value.toLowerCase() == 'male'
+                            ? Icons.man
+                            : controller.sex.value.toLowerCase() == 'female'
+                                ? Icons.woman
+                                : Icons.person,
+                        size: 40,
+                        color: const Color(0xFF64748B),
+                      ),
                     ),
                     const SizedBox(width: 20),
                     Expanded(

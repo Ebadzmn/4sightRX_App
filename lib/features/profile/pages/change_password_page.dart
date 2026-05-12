@@ -61,6 +61,8 @@ class ChangePasswordPage extends StatelessWidget {
               _buildPasswordField(
                 controller: controller.currentPasswordController,
                 hint: 'Enter current password',
+                isVisible: controller.isCurrentPasswordVisible,
+                onToggle: controller.toggleCurrentPasswordVisibility,
               ),
               const SizedBox(height: 20),
               _buildPasswordLabel('New Password', required: true),
@@ -68,6 +70,8 @@ class ChangePasswordPage extends StatelessWidget {
               _buildPasswordField(
                 controller: controller.newPasswordController,
                 hint: 'Enter new password',
+                isVisible: controller.isNewPasswordVisible,
+                onToggle: controller.toggleNewPasswordVisibility,
               ),
               const SizedBox(height: 20),
               _buildPasswordLabel('Confirm New Password', required: true),
@@ -75,27 +79,45 @@ class ChangePasswordPage extends StatelessWidget {
               _buildPasswordField(
                 controller: controller.confirmPasswordController,
                 hint: 'Re-enter new password',
+                isVisible: controller.isConfirmPasswordVisible,
+                onToggle: controller.toggleConfirmPasswordVisibility,
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: controller.changePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0C4A6E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : controller.changePassword,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C4A6E),
+                      disabledBackgroundColor: const Color(
+                        0xFF0C4A6E,
+                      ).withOpacity(0.6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Update Password',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                    child: controller.isLoading.value
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Update Password',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -141,34 +163,46 @@ class ChangePasswordPage extends StatelessWidget {
   Widget _buildPasswordField({
     required TextEditingController controller,
     required String hint,
+    required RxBool isVisible,
+    required VoidCallback onToggle,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(
-          Icons.lock_outline,
-          color: Colors.grey.shade400,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-          borderSide: BorderSide(color: Color(0xFF0D477D)),
+    return Obx(
+      () => TextField(
+        controller: controller,
+        obscureText: !isVisible.value,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(
+            Icons.lock_outline,
+            color: Colors.grey.shade400,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              isVisible.value ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey.shade400,
+              size: 20,
+            ),
+            onPressed: onToggle,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderSide: BorderSide(color: Color(0xFF0D477D)),
+          ),
         ),
       ),
     );

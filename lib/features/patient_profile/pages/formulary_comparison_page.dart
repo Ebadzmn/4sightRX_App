@@ -273,33 +273,70 @@ class FormularyComparisonPage extends StatelessWidget {
   Widget _buildLoadingState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFCEE0FF)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F62FE).withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
-        children: const [
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-          SizedBox(height: 16),
-          Text(
+        children: [
+          const _AnalyzingMedicationAnimation(),
+          const SizedBox(height: 32),
+          const Text(
             'Analyzing medications...',
             style: TextStyle(
               color: Color(0xFF1E293B),
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Please wait while we compare the selected medications.',
+          const SizedBox(height: 12),
+          const Text(
+            'Our AI is comparing clinical guidelines and your facility formulary to find the best alternatives.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Progress steps simulation
+          _buildLoadingStep('Checking clinical database', true),
+          _buildLoadingStep('Comparing with formulary', true),
+          _buildLoadingStep('Calculating potential savings', false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingStep(String label, bool isDone) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isDone ? Icons.check_circle : Icons.circle_outlined,
+            color: isDone ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: isDone ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+              fontWeight: isDone ? FontWeight.w500 : FontWeight.normal,
+            ),
           ),
         ],
       ),
@@ -752,5 +789,111 @@ class FormularyComparisonPage extends StatelessWidget {
       default:
         return const Color(0xFF475569);
     }
+  }
+}
+
+class _AnalyzingMedicationAnimation extends StatefulWidget {
+  const _AnalyzingMedicationAnimation();
+
+  @override
+  State<_AnalyzingMedicationAnimation> createState() =>
+      __AnalyzingMedicationAnimationState();
+}
+
+class __AnalyzingMedicationAnimationState extends State<_AnalyzingMedicationAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Pulsing background rings
+        ...List.generate(3, (index) {
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final progress = (_controller.value + (index * 0.33)) % 1.0;
+              return Container(
+                width: 60 + (progress * 80),
+                height: 60 + (progress * 80),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF0F62FE).withOpacity((1.0 - progress) * 0.3),
+                    width: 2,
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+        // Central icon
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F62FE),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F62FE).withOpacity(0.3),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.biotech_outlined,
+            color: Colors.white,
+            size: 40,
+          ),
+        ),
+        // Orbital dots
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.rotate(
+              angle: _controller.value * 2 * 3.14159,
+              child: SizedBox(
+                width: 140,
+                height: 140,
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF38B6FF),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

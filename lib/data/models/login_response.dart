@@ -66,9 +66,16 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    String name = json['name'] as String? ?? '';
+    if (name.isEmpty) {
+      final firstName = json['firstName'] as String? ?? '';
+      final lastName = json['lastName'] as String? ?? '';
+      name = '$firstName $lastName'.trim();
+    }
+
     return UserModel(
-      id: json['_id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      name: name,
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? '',
       image: json['image'] as String? ?? '',

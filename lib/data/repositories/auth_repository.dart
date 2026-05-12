@@ -327,6 +327,64 @@ class AuthRepository {
     _apiClient.clearToken();
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final response = await _apiClient.post(
+      ApiEndpoints.changePassword,
+      body: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      },
+    );
+
+    final responseData = response.data;
+    if (responseData is! Map<String, dynamic>) {
+      throw NetworkException(message: 'Something went wrong. Try again');
+    }
+
+    final success = responseData['success'] as bool? ?? false;
+    final message = responseData['message'] as String? ?? '';
+
+    if (!success) {
+      throw NetworkException(
+        message: _mapChangePasswordError(
+          message: message,
+          statusCode: response.statusCode,
+        ),
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  String _mapChangePasswordError({required String message, int? statusCode}) {
+    final lowerMessage = message.toLowerCase();
+
+    if (statusCode == 500 || lowerMessage.contains('server')) {
+      return 'Server error. Please try again';
+    }
+
+    if (lowerMessage.contains('incorrect') ||
+        lowerMessage.contains('current') ||
+        lowerMessage.contains('password')) {
+      return 'Incorrect current password';
+    }
+
+    if (lowerMessage.contains('match') || lowerMessage.contains('mismatch')) {
+      return 'Passwords do not match';
+    }
+
+    if (lowerMessage.contains('internet') ||
+        lowerMessage.contains('connection')) {
+      return 'No internet connection';
+    }
+
+    return message.isNotEmpty ? message : 'Something went wrong. Try again';
+  }
+
   String _mapSignUpError({required String message, int? statusCode}) {
     final lowerMessage = message.toLowerCase();
 

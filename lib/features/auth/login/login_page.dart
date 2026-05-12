@@ -125,41 +125,57 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 30),
                   Obx(
-                    () => SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : () => controller.login(_formKey),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D477D),
-                          disabledBackgroundColor: const Color(
-                            0xFF0D477D,
-                          ).withValues(alpha: 0.55),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: controller.isLoading.value
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                    () => Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () => controller.login(_formKey),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0D477D),
+                              disabledBackgroundColor: const Color(
+                                0xFF0D477D,
+                              ).withValues(alpha: 0.55),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                      ),
+                              elevation: 0,
+                            ),
+                            child: controller.isLoading.value
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        if (controller.canLoginWithBiometric.value) ...[
+                          const SizedBox(height: 20),
+                          IconButton(
+                            onPressed: controller.biometricLogin,
+                            icon: const Icon(
+                              Icons.fingerprint,
+                              size: 48,
+                              color: Color(0xFF0D477D),
+                            ),
+                            tooltip: 'Login with Biometrics',
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),

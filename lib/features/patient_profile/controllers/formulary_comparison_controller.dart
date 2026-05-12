@@ -21,7 +21,8 @@ class FormularyItem {
     required this.estimatedSavings,
     required this.action,
     bool hospiceCovered = false,
-  }) : actionState = action.obs, isHospiceCovered = hospiceCovered.obs;
+  }) : actionState = action.obs,
+       isHospiceCovered = hospiceCovered.obs;
 
   factory FormularyItem.fromJson(Map<String, dynamic> json) {
     return FormularyItem(
@@ -51,7 +52,9 @@ class FormularyItem {
   }
 
   String get currentName {
-    return currentMedication.trim().isEmpty ? 'Not provided' : currentMedication;
+    return currentMedication.trim().isEmpty
+        ? 'Not provided'
+        : currentMedication;
   }
 
   String get currentDosage => '';
@@ -73,9 +76,16 @@ class FormularyItem {
   }
 
   String get savingsText {
-    return estimatedSavings.trim().isEmpty
-        ? 'Savings not available'
-        : estimatedSavings;
+    if (estimatedSavings.trim().isEmpty) {
+      return 'Savings not available';
+    }
+    // Remove any existing $ sign or 'Savings' text to avoid duplication
+    final cleanAmount = estimatedSavings
+        .replaceAll('\$', '')
+        .replaceAll('Savings:', '')
+        .replaceAll('Savings', '')
+        .trim();
+    return 'Savings: \$$cleanAmount';
   }
 
   String get actionLabel {
@@ -203,10 +213,7 @@ class FormularyComparisonController extends GetxController {
         !comparisons[index].isHospiceCovered.value;
   }
 
-  Future<bool> acceptComparison(
-    FormularyItem item, {
-    String? acceptNote,
-  }) {
+  Future<bool> acceptComparison(FormularyItem item, {String? acceptNote}) {
     return _submitAction(
       item: item,
       action: 'accepted',
@@ -333,10 +340,7 @@ class FormularyComparisonController extends GetxController {
 
     if (normalizedAction == 'declined' || normalizedAction == 'discontinued') {
       final note = reasonNote?.trim() ?? '';
-      return {
-        'action': normalizedAction,
-        'reasonNote': note,
-      };
+      return {'action': normalizedAction, 'reasonNote': note};
     }
 
     return {'action': normalizedAction};
@@ -346,7 +350,8 @@ class FormularyComparisonController extends GetxController {
     dynamic arguments,
   ) {
     if (arguments is Map) {
-      final extractedPatientId = arguments['patientId']?.toString().trim() ?? '';
+      final extractedPatientId =
+          arguments['patientId']?.toString().trim() ?? '';
       final extractedMedicationIds = _extractMedicationIds(
         arguments['medicationIds'],
       );

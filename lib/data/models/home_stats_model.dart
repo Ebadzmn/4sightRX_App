@@ -13,10 +13,10 @@ class HomeStatsModel {
 
   factory HomeStatsModel.fromJson(Map<String, dynamic> json) {
     return HomeStatsModel(
-      completedReconciliations: (json['completedReconciliations'] ?? 0) as int,
-      averageSavingsPerPatient: _toDouble(json['averageSavingsPerPatient']),
+      completedReconciliations: (json['patientsAdmitted'] ?? json['completedReconciliations'] ?? 0) as int,
+      averageSavingsPerPatient: _toDouble(json['monthlyMedicationSavings'] ?? json['averageSavingsPerPatient']),
       totalMonthlySavings: _toDouble(json['totalMonthlySavings']),
-      operationalCostSavings: _toDouble(json['operationalCostSavings']),
+      operationalCostSavings: _toDouble(json['operationalSavings'] ?? json['operationalCostSavings']),
     );
   }
 

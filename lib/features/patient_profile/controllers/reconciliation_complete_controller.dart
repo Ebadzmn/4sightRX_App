@@ -117,15 +117,37 @@ class PatientInfo {
   });
 
   factory PatientInfo.fromJson(Map<String, dynamic> json) {
+    // Handle DOB and format it
+    String dobValue = json['dob']?.toString() ?? json['dateOfBirth']?.toString() ?? '';
+    if (dobValue.isNotEmpty) {
+      try {
+        final parsed = DateTime.parse(dobValue);
+        dobValue = '${parsed.month.toString().padLeft(2, '0')}/${parsed.day.toString().padLeft(2, '0')}/${parsed.year}';
+      } catch (_) {}
+    }
+
+    // Handle Sex/Gender
+    String sexValue = json['sex']?.toString() ?? json['gender']?.toString() ?? '';
+
+    // Handle Allergies
+    String allergiesValue = json['medicationAllergies']?.toString() ?? '';
+    if (allergiesValue.isEmpty && json['allergies'] is List) {
+      final list = json['allergies'] as List;
+      allergiesValue = list
+          .map((e) => e is Map ? e['name']?.toString() ?? '' : '')
+          .where((e) => e.isNotEmpty)
+          .join(', ');
+    }
+
     return PatientInfo(
       firstName: json['firstName']?.toString() ?? '',
       lastName: json['lastName']?.toString() ?? '',
       mrn: json['patientIdMrn']?.toString() ?? '',
-      dateOfBirth: json['dateOfBirth']?.toString() ?? '',
+      dateOfBirth: dobValue,
       age: json['age'] is int ? json['age'] : 0,
-      gender: json['gender']?.toString() ?? '',
-      phoneNumber: json['phoneNumber']?.toString() ?? '',
-      medicationAllergies: json['medicationAllergies']?.toString() ?? '',
+      gender: sexValue,
+      phoneNumber: json['phoneNumber']?.toString() ?? 'N/A',
+      medicationAllergies: allergiesValue.isNotEmpty ? allergiesValue : 'None',
       notes: json['notes']?.toString() ?? '',
     );
   }

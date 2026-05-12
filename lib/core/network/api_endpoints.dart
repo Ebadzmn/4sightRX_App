@@ -29,4 +29,5 @@ class ApiEndpoints {
   static const String forgetPassword = '/auth/forget-password';
   static const String verifyEmail = '/auth/verify-email';
   static const String resetPassword = '/auth/reset-password';
+  static const String changePassword = '/auth/change-password';
 }

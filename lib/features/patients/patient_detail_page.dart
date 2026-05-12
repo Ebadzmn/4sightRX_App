@@ -96,10 +96,17 @@ class PatientDetailPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(
-                        'https://i.pravatar.cc/150?u=margaret',
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      child: Icon(
+                        controller.gender.toLowerCase() == 'male'
+                            ? Icons.man
+                            : controller.gender.toLowerCase() == 'female'
+                                ? Icons.woman
+                                : Icons.person,
+                        size: 40,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(width: 20),
@@ -124,7 +131,14 @@ class PatientDetailPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Room ${controller.roomNumber.value}',
+                            'DOB: ${controller.dateOfBirth}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            controller.organizationName,
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF64748B),
@@ -181,7 +195,7 @@ class PatientDetailPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${controller.medicationsCount.value} medications',
+                            controller.medicationsDisplay,
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
