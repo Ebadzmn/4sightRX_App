@@ -77,10 +77,11 @@ class AddPatientPage extends StatelessWidget {
                     Expanded(
                       child: Obx(() => _buildDropdownField(
                         label: 'SEX',
-                        value: controller.selectedSex,
+                        value: controller.selectedSex.value.isEmpty ? null : controller.selectedSex.value,
+                        onChanged: (val) => controller.selectedSex.value = val ?? '',
                         items: controller.sexes,
                         isRequired: true,
-                        hint: 'Select Sex',
+                        hint: 'Choose One',
                         errorText: controller.fieldErrors['sex'],
                       )),
                     ),
@@ -88,7 +89,8 @@ class AddPatientPage extends StatelessWidget {
                     Expanded(
                       child: Obx(() => _buildDropdownField(
                         label: 'ANTICIPATED LIFE EXPECTANCY',
-                        value: controller.selectedLifeExpectancy,
+                        value: controller.selectedLifeExpectancy.value.isEmpty ? null : controller.selectedLifeExpectancy.value,
+                        onChanged: (val) => controller.selectedLifeExpectancy.value = val ?? '',
                         items: controller.lifeExpectancyOptions,
                         isRequired: true,
                         hint: 'Select',
@@ -107,7 +109,8 @@ class AddPatientPage extends StatelessWidget {
               children: [
                 Obx(() => _buildDropdownField(
                   label: 'ORGANIZATION / INSTITUTION',
-                  value: controller.selectedOrganizationId,
+                  value: controller.selectedOrganizationId.value.isEmpty ? null : controller.selectedOrganizationId.value,
+                  onChanged: (val) => controller.selectedOrganizationId.value = val ?? '',
                   items: controller.organizationsList.map((e) => e.name).toList(),
                   values: controller.organizationsList.map((e) => e.id).toList(),
                   isRequired: true,
@@ -118,7 +121,7 @@ class AddPatientPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildDateField(
                   label: 'ADMISSION DATE',
-                  hint: 'MM/DD/YYYY',
+                  hint: 'DD/MM/YYYY',
                   value: controller.selectedAdmissionDate,
                   onTap: controller.pickAdmissionDate,
                   isRequired: true,
@@ -174,11 +177,24 @@ class AddPatientPage extends StatelessWidget {
                           : () {
                               controller.addPatient().then((_) {
                                 if (controller.fieldErrors.isNotEmpty) {
-                                  scrollController.animateTo(
-                                    0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOut,
-                                  );
+                                  // Find the first error and scroll to a reasonable position
+                                  // For simplicity, if organizationId is the error, we don't necessarily want to scroll to 0
+                                  if (controller.fieldErrors.containsKey('firstName') || 
+                                      controller.fieldErrors.containsKey('lastName') ||
+                                      controller.fieldErrors.containsKey('dob')) {
+                                    scrollController.animateTo(
+                                      0,
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  } else {
+                                    // Scroll to middle or bottom if the errors are there
+                                    scrollController.animateTo(
+                                      scrollController.position.maxScrollExtent * 0.6,
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  }
                                 }
                               });
                             },
@@ -364,32 +380,38 @@ class AddPatientPage extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              flex: 4,
+              child: _buildDropdownField(
+                label: '',
+                value: controller.selectedMonth.value.isEmpty ? null : controller.selectedMonth.value,
+                onChanged: (val) => controller.selectedMonth.value = val ?? '',
+                items: controller.months,
+                hint: 'Month',
+                horizontalPadding: 6,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
               flex: 3,
               child: _buildDropdownField(
                 label: '',
-                value: controller.selectedMonth,
-                items: controller.months,
-                hint: 'Month',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 2,
-              child: _buildDropdownField(
-                label: '',
-                value: controller.selectedDay,
+                value: controller.selectedDay.value.isEmpty ? null : controller.selectedDay.value,
+                onChanged: (val) => controller.selectedDay.value = val ?? '',
                 items: controller.availableDays,
-                hint: 'Day',
+                hint: 'Date',
+                horizontalPadding: 6,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              flex: 2,
+              flex: 3,
               child: _buildDropdownField(
                 label: '',
-                value: controller.selectedYear,
+                value: controller.selectedYear.value.isEmpty ? null : controller.selectedYear.value,
+                onChanged: (val) => controller.selectedYear.value = val ?? '',
                 items: controller.availableYears,
                 hint: 'Year',
+                horizontalPadding: 6,
               ),
             ),
           ],
@@ -560,13 +582,15 @@ class AddPatientPage extends StatelessWidget {
 
   Widget _buildDropdownField({
     required String label,
-    required RxString value,
+    required String? value,
     required List<String> items,
+    required ValueChanged<String?> onChanged,
     List<String>? values,
     bool isRequired = false,
     String? hint,
     bool isLoading = false,
     String? errorText,
+    double horizontalPadding = 16,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,24 +616,35 @@ class AddPatientPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
-        Obx(() {
-          final String? selectedValue = value.value.isEmpty ? null : value.value;
+        Builder(builder: (context) {
+          final bool isSelected = value != null && value.isNotEmpty;
 
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: errorText != null ? Colors.red : const Color(0xFFBFDBFE)),
-              color: Colors.white,
+              border: Border.all(
+                color: errorText != null
+                    ? Colors.red
+                    : (isSelected ? const Color(0xFF3B82F6) : const Color(0xFFBFDBFE)),
+                width: isSelected ? 1.5 : 1.0,
+              ),
+              color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
             ),
             child: isLoading
                 ? const SizedBox(
                     height: 48,
-                    child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                    child: Center(
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   )
                 : DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: selectedValue,
+                      value: value,
                       dropdownColor: Colors.white,
                       icon: const Icon(
                         Icons.keyboard_arrow_down,
@@ -618,6 +653,8 @@ class AddPatientPage extends StatelessWidget {
                       isExpanded: true,
                       hint: Text(
                         hint ?? 'Select',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFFCBD5E1),
                           fontSize: 14,
@@ -625,23 +662,46 @@ class AddPatientPage extends StatelessWidget {
                         ),
                       ),
                       items: List.generate(items.length, (index) {
+                        final String itemLabel = items[index];
+                        final String? itemValue = values != null ? values[index] : items[index];
+
                         return DropdownMenuItem<String>(
-                          value: values != null ? values[index] : items[index],
-                          child: Text(
-                            items[index],
-                            style: const TextStyle(
-                              color: Color(0xFF1E293B),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                            ),
+                          value: itemValue,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  itemLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1E293B),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                              if (values != null && label.contains('ORGANIZATION'))
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'ID: ${values[index]}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         );
                       }),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          value.value = newValue;
-                        }
-                      },
+                      onChanged: onChanged,
                     ),
                   ),
           );
@@ -661,7 +721,7 @@ class AddPatientPage extends StatelessWidget {
   String _formatDate(DateTime date) {
     final String day = date.day.toString().padLeft(2, '0');
     final String month = date.month.toString().padLeft(2, '0');
-    final String year = date.year.toString().padLeft(4, '0');
-    return '$month/$day/$year';
+    final String year = date.year.toString();
+    return '$day/$month/$year';
   }
 }

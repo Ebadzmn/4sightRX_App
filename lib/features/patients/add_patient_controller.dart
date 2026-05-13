@@ -18,7 +18,7 @@ class AddPatientController extends GetxController {
   final TextEditingController notesController = TextEditingController();
 
   final RxBool isLoading = false.obs;
-  final RxString selectedSex = 'Male'.obs;
+  final RxString selectedSex = ''.obs;
   
   // DOB Dropdowns
   final RxString selectedMonth = ''.obs;
@@ -62,10 +62,14 @@ class AddPatientController extends GetxController {
   ];
 
   List<String> get availableDays {
-    if (selectedMonth.isEmpty || selectedYear.isEmpty) return [];
     int monthIndex = months.indexOf(selectedMonth.value) + 1;
-    int year = int.tryParse(selectedYear.value) ?? DateTime.now().year;
-    int daysInMonth = DateTime(year, monthIndex + 1, 0).day;
+    int year = int.tryParse(selectedYear.value) ?? 2000; // Default to leap year to allow 29 days
+    
+    int daysInMonth = 31;
+    if (selectedMonth.isNotEmpty) {
+      daysInMonth = DateTime(year, monthIndex + 1, 0).day;
+    }
+    
     return List.generate(daysInMonth, (index) => (index + 1).toString());
   }
 
@@ -101,6 +105,13 @@ class AddPatientController extends GetxController {
     ever(selectedSex, (_) => fieldErrors.remove('sex'));
     ever(selectedOrganizationId, (_) => fieldErrors.remove('organizationId'));
     ever(selectedLifeExpectancy, (_) => fieldErrors.remove('lifeExpectancy'));
+
+    // Auto-select if only one organization is available when list updates
+    ever(organizationsList, (List<OrganizationModel> list) {
+      if (list.length == 1 && selectedOrganizationId.isEmpty) {
+        selectedOrganizationId.value = list[0].id;
+      }
+    });
   }
 
   @override
@@ -119,6 +130,11 @@ class AddPatientController extends GetxController {
     try {
       final orgs = await _organizationRepository.getOrganizations();
       organizationsList.assignAll(orgs);
+      
+      // Also check here immediately after fetch
+      if (orgs.length == 1 && selectedOrganizationId.isEmpty) {
+        selectedOrganizationId.value = orgs[0].id;
+      }
     } catch (e) {
       // Handle error silently or show snackbar
     } finally {
@@ -195,12 +211,12 @@ class AddPatientController extends GetxController {
       final payload = {
         'firstName': firstNameController.text.trim(),
         'lastName': lastNameController.text.trim(),
-        'sex': selectedSex.value,
+        'sex': selectedSex.value.trim(),
         'dob': dobStr,
         'mrn': patientIdMrnController.text.trim(),
-        'organizationId': selectedOrganizationId.value,
+        'organizationId': selectedOrganizationId.value.trim(),
         'admissionDate': _formatDateToPayload(selectedAdmissionDate.value!),
-        'lifeExpectancy': selectedLifeExpectancy.value,
+        'lifeExpectancy': selectedLifeExpectancy.value.trim(),
         'allergies': selectedAllergies.map((e) => e.toJson()).toList(),
       };
       
@@ -209,12 +225,12 @@ class AddPatientController extends GetxController {
       await _patientRepository.addPatient(
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
-        sex: selectedSex.value,
+        sex: selectedSex.value.trim(),
         dob: dobStr,
         mrn: patientIdMrnController.text.trim(),
-        organizationId: selectedOrganizationId.value,
+        organizationId: selectedOrganizationId.value.trim(),
         admissionDate: _formatDateToPayload(selectedAdmissionDate.value!),
-        lifeExpectancy: selectedLifeExpectancy.value,
+        lifeExpectancy: selectedLifeExpectancy.value.trim(),
         allergies: selectedAllergies,
       );
 
@@ -255,7 +271,11 @@ class AddPatientController extends GetxController {
       isValid = false;
     }
     if (selectedOrganizationId.isEmpty) {
-      fieldErrors['organizationId'] = 'Organization is required';
+      if (organizationsList.isEmpty && !isOrganizationsLoading.value) {
+        fieldErrors['organizationId'] = 'No organizations available to select';
+      } else {
+        fieldErrors['organizationId'] = 'Please select an organization';
+      }
       isValid = false;
     }
     if (selectedAdmissionDate.value == null) {
@@ -295,7 +315,7 @@ class AddPatientController extends GetxController {
     patientIdMrnController.clear();
     allergySearchController.clear();
     notesController.clear();
-    selectedSex.value = 'Male';
+    selectedSex.value = '';
     selectedMonth.value = '';
     selectedDay.value = '';
     selectedYear.value = '';
