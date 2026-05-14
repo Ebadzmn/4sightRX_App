@@ -249,7 +249,7 @@ class PatientRepository {
         'sex': sex,
         'dob': dob,
         'mrn': mrn,
-        'organizationId': organizationId,
+        'organization_id': organizationId,
         'admissionDate': admissionDate,
         'lifeExpectancy': lifeExpectancy,
         'allergies': allergies.map((e) => e.toJson()).toList(),

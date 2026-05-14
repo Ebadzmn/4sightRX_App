@@ -214,7 +214,7 @@ class AddPatientController extends GetxController {
         'sex': selectedSex.value.trim(),
         'dob': dobStr,
         'mrn': patientIdMrnController.text.trim(),
-        'organizationId': selectedOrganizationId.value.trim(),
+        'organization_id': selectedOrganizationId.value.trim(),
         'admissionDate': _formatDateToPayload(selectedAdmissionDate.value!),
         'lifeExpectancy': selectedLifeExpectancy.value.trim(),
         'allergies': selectedAllergies.map((e) => e.toJson()).toList(),
